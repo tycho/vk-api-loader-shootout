@@ -1,0 +1,8 @@
+/.cflags
+*.pdb
+*.dll
+*.exe
+*.obj
+*.so
+*.dylib
+*.o

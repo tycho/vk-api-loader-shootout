@@ -1,0 +1,15 @@
+[submodule "extern/glad-tycho"]
+	path = extern/glad-tycho
+	url = https://github.com/tycho/glad
+	branch = glad2
+[submodule "extern/glad-dav1dde"]
+	path = extern/glad-dav1dde
+	url = https://github.com/dav1dde/glad
+	branch = glad2
+[submodule "extern/volk"]
+	path = extern/volk
+	url = https://github.com/zeux/volk
+	branch = master
+[submodule "extern/Vulkan-Headers"]
+	path = extern/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers
