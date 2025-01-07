@@ -12,10 +12,21 @@ uname_R := $(shell uname -r)
 CPU_BRAND := $(shell scripts/get_cpu_brand.sh)
 
 # Common flags
+DEBUGFLAGS := -g0
 ifeq ($(uname_M),arm64)
-OPTFLAGS := -O2 -mcpu=native -g0
+OPTFLAGS = -O2 -mcpu=native $(DEBUGFLAGS)
 else
-OPTFLAGS := -O2 -march=x86-64-v2 -mtune=znver3 -g0
+OPTFLAGS = -O2 -march=x86-64-v2 -mtune=znver3 $(DEBUGFLAGS)
+endif
+
+# Enable symbols
+ifdef DEBUG
+ifeq ($(uname_S),Darwin)
+STRIP := dsymutil
+else
+STRIP := :
+endif
+DEBUGFLAGS := -g3
 endif
 
 # For C language only
@@ -40,7 +51,8 @@ CXX_VERSION := $(shell $(CXX) -dumpversion)
 all: run
 
 clean:
-	rm -f bin/test-*
+	rm -f .cflags
+	rm -rf bin/test-*
 	rm -f obj/loader-*.o
 	rm -f obj/main-*.o
 
