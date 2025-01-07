@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <cstring>
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -19,8 +20,6 @@
 #else
 #error "Must define either USE_VOLK or USE_GLAD for this to compile"
 #endif
-
-#define ARRAYSIZE(x) (sizeof(x) / sizeof(x[0]))
 
 // ARGH, Microsoft!
 #ifndef __has_attribute
@@ -173,8 +172,13 @@ int main() {
         return -1;
     }
 
+    if (!loader_init())
+        return -1;
+
     VkInstance instance;
     VkDevice device;
+    std::vector<const char *> enabledExtensions;
+    bool supportsPortabilityEnumeration = false;
 
     // Vulkan instance creation info
     VkApplicationInfo appInfo{};
@@ -188,17 +192,30 @@ int main() {
     VkInstanceCreateInfo instanceCreateInfo{};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &appInfo;
-#ifdef __APPLE__
-    const char *enabledExtensions[] = {
-        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
-    };
-    instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-    instanceCreateInfo.ppEnabledExtensionNames = enabledExtensions;
-    instanceCreateInfo.enabledExtensionCount = ARRAYSIZE(enabledExtensions);
+#ifdef GLAD_VK_KHR_portability_enumeration
+    supportsPortabilityEnumeration = GLAD_VK_KHR_portability_enumeration;
+#else
+    {
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+        std::vector<VkExtensionProperties> extensions(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
+        for (uint32_t i = 0; i < count; i++) {
+            if (strcmp(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, extensions[i].extensionName) == 0) {
+                supportsPortabilityEnumeration = true;
+                break;
+            }
+        }
+    }
 #endif
-
-    if (!loader_init())
-        return -1;
+    if (supportsPortabilityEnumeration) {
+        enabledExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    }
+    if (!enabledExtensions.empty()) {
+        instanceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
+        instanceCreateInfo.enabledExtensionCount = enabledExtensions.size();
+    }
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
         std::cerr << "Failed to create Vulkan instance!" << std::endl;
