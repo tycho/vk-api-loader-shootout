@@ -107,7 +107,7 @@ run: build
 	@echo
 	@echo Section sizes:
 	@echo "\`\`\`"
-	@size bin/test-*
+	@size bin/test-* | column -t -R 1
 	@echo "\`\`\`"
 	@echo
 	@echo vulkaninfo
