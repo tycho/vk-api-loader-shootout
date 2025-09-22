@@ -139,12 +139,12 @@ bin/test-glad-tycho: src/main.cpp generated/glad-tycho/src/vulkan.c extern/glad-
 gen-glad-dav1dde:
 	cp extern/glad-tycho/glad/files/* extern/glad-dav1dde/glad/files/
 	scripts/gen-glad.sh extern/glad-dav1dde venv/glad-dav1dde generated/glad-dav1dde
-generated/glad-dav1dde/src/vulkan.c:
+generated/glad-dav1dde/src/vulkan.c: scripts/gen-glad.sh
 	cp extern/glad-tycho/glad/files/* extern/glad-dav1dde/glad/files/
 	scripts/gen-glad.sh extern/glad-dav1dde venv/glad-dav1dde generated/glad-dav1dde
 gen-glad-tycho:
 	scripts/gen-glad.sh extern/glad-tycho venv/glad-tycho generated/glad-tycho
-generated/glad-tycho/src/vulkan.c:
+generated/glad-tycho/src/vulkan.c: scripts/gen-glad.sh
 	scripts/gen-glad.sh extern/glad-tycho venv/glad-tycho generated/glad-tycho
 .PHONY: gen-glad-dav1dde gen-glad-tycho
 
