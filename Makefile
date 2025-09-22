@@ -39,7 +39,7 @@ CXXFLAGS := -std=c++20
 #CXXFLAGS += -stdlib=libc++
 #endif
 
-VOLK_VERSION := $(shell cd extern/volk && git describe --tags)
+VOLK_VERSION := $(shell cd extern/volk && git describe --tags | sed 's/^vulkan-sdk-//g;s/^v//g')
 XXHASH_VERSION := $(shell cd extern/glad-tycho/third_party/xxHash && git describe --tags | sed 's/^v//')
 VK_HEADERS_VERSION := $(shell cd extern/Vulkan-Headers && git describe --tags | sed 's/^v//')
 GLAD_TYCHO_VERSION := $(shell cd extern/glad-tycho && git describe --tags | sed 's/^v//')
