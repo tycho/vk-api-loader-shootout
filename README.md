@@ -244,7 +244,7 @@ libvulkan is slow
 The majority of the time in my GLAD fork is taken up by `strcmp()` calls inside
 libvulkan. This, frustratingly, is how libvulkan decides which function pointer
 is being requested by the application. I wrote a patch for libvulkan which uses
-the same kind of strategy I used in my GLAD fork: precompued XXH3 64-bit values
+the same kind of strategy I used in my GLAD fork: precomputed XXH3 64-bit values
 and runtime comparison against the precomputed values. This ends up being
 dramatically faster than repeated string comparisons. The libvulkan patch is
 available [here](https://github.com/tycho/vk-api-loader-shootout/blob/master/experiments/0001-use-xxhash-for-function-name-lookups.patch).
