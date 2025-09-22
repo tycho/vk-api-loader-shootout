@@ -109,6 +109,11 @@ run: build
 	@echo "\`\`\`"
 	@size bin/test-*
 	@echo "\`\`\`"
+	@echo
+	@echo vulkaninfo
+	@echo "\`\`\`"
+	@vulkaninfo --summary | grep -A9999 '^Devices:$$'
+	@echo "\`\`\`"
 
 build: bin/test-volk bin/test-glad-dav1dde bin/test-glad-tycho
 
