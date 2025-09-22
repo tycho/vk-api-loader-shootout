@@ -23,7 +23,7 @@ fi
 
 	# Upstream GLAD does not support --mx-global anymore, try once with and
 	# once without that argument
-	glad --reproducible --api=vulkan --out-path="${OUTDIR}" --merge c --alias --loader --mx --mx-global --no-extension-detection || \
+	glad --reproducible --api=vulkan --out-path="${OUTDIR}" --merge c --alias --loader --mx --mx-global --use-pfn-ranges || \
 		glad --reproducible --api=vulkan --out-path="${OUTDIR}" --merge c --alias --loader
 
 )
