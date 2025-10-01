@@ -13,11 +13,16 @@ CPU_BRAND := $(shell scripts/get_cpu_brand.sh)
 
 # Common flags
 DEBUGFLAGS := -g0
+
 ifeq ($(uname_M),arm64)
-OPTFLAGS = -O2 -mcpu=native $(DEBUGFLAGS)
+ARCHFLAGS := -mcpu=native
 else
-OPTFLAGS = -O2 -march=x86-64-v2 -mtune=znver3 $(DEBUGFLAGS)
+ARCHFLAGS := -march=x86-64-v2 -mtune=znver3
 endif
+
+OPTFLAGS := -O2 -fno-unroll-loops $(ARCHFLAGS) $(DEBUGFLAGS)
+
+LDFLAGS := -s
 
 # Enable symbols
 ifdef DEBUG
@@ -123,17 +128,17 @@ build: bin/test-volk bin/test-glad-dav1dde bin/test-glad-tycho
 bin/test-volk: src/main.cpp extern/volk/volk.c .cflags
 	$(CC) -c -o obj/loader-volk.o $(OPTFLAGS) $(CFLAGS) -Iextern/volk -Iextern/Vulkan-Headers/include extern/volk/volk.c
 	$(CXX) -c -o obj/main-volk.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_VOLK -Iextern/volk -Iextern/Vulkan-Headers/include src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) obj/loader-volk.o obj/main-volk.o
+	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-volk.o obj/main-volk.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
 bin/test-glad-dav1dde: src/main.cpp generated/glad-dav1dde/src/vulkan.c .cflags
 	$(CC) -c -o obj/loader-glad-dav1dde.o $(OPTFLAGS) $(CFLAGS) -Igenerated/glad-dav1dde/include generated/glad-dav1dde/src/vulkan.c
 	$(CXX) -c -o obj/main-glad-dav1dde.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Igenerated/glad-dav1dde/include src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) obj/loader-glad-dav1dde.o obj/main-glad-dav1dde.o
+	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-dav1dde.o obj/main-glad-dav1dde.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
 bin/test-glad-tycho: src/main.cpp generated/glad-tycho/src/vulkan.c extern/glad-tycho/third_party/xxHash/xxhash.h .cflags
 	$(CC) -c -o obj/loader-glad-tycho.o $(OPTFLAGS) $(CFLAGS) -Igenerated/glad-tycho/include -Iextern/glad-tycho/third_party/xxHash generated/glad-tycho/src/vulkan.c
 	$(CXX) -c -o obj/main-glad-tycho.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Igenerated/glad-tycho/include -Iextern/glad-tycho/third_party/xxHash src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) obj/loader-glad-tycho.o obj/main-glad-tycho.o
+	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-tycho.o obj/main-glad-tycho.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
 
 gen-glad-dav1dde:
