@@ -1,14 +1,14 @@
-From 55317778c4da4715a6936f79d6b89f67ef464add Mon Sep 17 00:00:00 2001
+From 096085e20b5d63fc2c6c3d5c692e6e7c8badd225 Mon Sep 17 00:00:00 2001
 From: Steven Noonan <steven@uplinklabs.net>
-Date: Mon, 6 Jan 2025 03:40:47 -0800
-Subject: [PATCH 1/2] use xxhash for function name lookups
+Date: Sun, 5 Oct 2025 23:41:01 -0700
+Subject: [PATCH] use xxhash for function name lookups
 
 Signed-off-by: Steven Noonan <steven@uplinklabs.net>
 ---
  loader/debug_utils.c                          |   16 +-
  loader/debug_utils.h                          |    2 +-
- loader/generated/vk_command_name_hashes.h     |  792 ++
- loader/generated/vk_loader_extensions.c       | 2491 +++---
+ loader/generated/vk_command_name_hashes.h     |  794 ++
+ loader/generated/vk_loader_extensions.c       | 2499 +++---
  loader/generated/vk_loader_extensions.h       |    9 +-
  loader/gpa_helper.c                           |  487 +-
  loader/loader.c                               |   43 +-
@@ -19,7 +19,7 @@ Signed-off-by: Steven Noonan <steven@uplinklabs.net>
  scripts/generate_source.py                    |    6 +
  .../generators/command_name_hash_generator.py |   90 +
  .../generators/loader_extension_generator.py  |   32 +-
- 14 files changed, 9744 insertions(+), 1597 deletions(-)
+ 14 files changed, 9750 insertions(+), 1601 deletions(-)
  create mode 100644 loader/generated/vk_command_name_hashes.h
  create mode 100644 loader/xxhash.h
  create mode 100644 scripts/generators/command_name_hash_generator.py
@@ -88,10 +88,10 @@ index 9472ef947..cbefa1089 100644
                                           VkDebugUtilsMessageTypeFlagsEXT *da_type);
 diff --git a/loader/generated/vk_command_name_hashes.h b/loader/generated/vk_command_name_hashes.h
 new file mode 100644
-index 000000000..e80915a69
+index 000000000..4bbdd918f
 --- /dev/null
 +++ b/loader/generated/vk_command_name_hashes.h
-@@ -0,0 +1,792 @@
+@@ -0,0 +1,794 @@
 +// *** THIS FILE IS GENERATED - DO NOT EDIT ***
 +// See command_name_hash_generator.py for modifications
 +
@@ -209,8 +209,10 @@ index 000000000..e80915a69
 +#define XXH3_vkCmdCopyImageToBuffer 0x88c098a6d45aa827ULL
 +#define XXH3_vkCmdCopyImageToBuffer2 0x07b8ecf11f0a147aULL
 +#define XXH3_vkCmdCopyImageToBuffer2KHR 0x02eb4358362cbe5fULL
++#define XXH3_vkCmdCopyMemoryIndirectKHR 0x8be9c061dfeccd83ULL
 +#define XXH3_vkCmdCopyMemoryIndirectNV 0xea1cabf280ef8b04ULL
 +#define XXH3_vkCmdCopyMemoryToAccelerationStructureKHR 0xc24235cf58916cb3ULL
++#define XXH3_vkCmdCopyMemoryToImageIndirectKHR 0x8c44d66daa2b8a1dULL
 +#define XXH3_vkCmdCopyMemoryToImageIndirectNV 0x41a01ed27bc041f2ULL
 +#define XXH3_vkCmdCopyMemoryToMicromapEXT 0x09bcf6218bf7a7ccULL
 +#define XXH3_vkCmdCopyMicromapEXT 0x07982f27d5cc9e3dULL
@@ -885,7 +887,7 @@ index 000000000..e80915a69
 +#define XXH3_vk_layerGetPhysicalDeviceProcAddr 0x717e697d1633d74dULL
 +// clang-format on
 diff --git a/loader/generated/vk_loader_extensions.c b/loader/generated/vk_loader_extensions.c
-index 4e4b9ad76..ae927c01a 100644
+index 6610c5056..fd11333bf 100644
 --- a/loader/generated/vk_loader_extensions.c
 +++ b/loader/generated/vk_loader_extensions.c
 @@ -35,6 +35,7 @@
@@ -896,7 +898,7 @@ index 4e4b9ad76..ae927c01a 100644
  
  // Device extension error function
  VKAPI_ATTR VkResult VKAPI_CALL vkDevExtError(VkDevice dev) {
-@@ -1688,13 +1689,12 @@ VKAPI_ATTR VkResult VKAPI_CALL SetDebugUtilsObjectTagEXT(
+@@ -1692,13 +1693,12 @@ VKAPI_ATTR VkResult VKAPI_CALL SetDebugUtilsObjectTagEXT(
      const VkDebugUtilsObjectTagInfoEXT*         pTagInfo);
  
  // Device command lookup function
@@ -911,7 +913,7 @@ index 4e4b9ad76..ae927c01a 100644
      *found_name = true;
      struct loader_device* dev = (struct loader_device *)table;
      const struct loader_instance* inst = dev->phys_dev_term->this_icd_term->this_instance;
-@@ -1702,1609 +1702,1609 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
+@@ -1706,1613 +1706,1613 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
  
  
      // ---- Core Vulkan 1.0 commands
@@ -2281,6 +2283,12 @@ index 4e4b9ad76..ae927c01a 100644
 +    if (nameHash == XXH3_vkCmdSetDescriptorBufferOffsets2EXT) return (void *)table->CmdSetDescriptorBufferOffsets2EXT;
 +    if (nameHash == XXH3_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT) return (void *)table->CmdBindDescriptorBufferEmbeddedSamplers2EXT;
  
+     // ---- VK_KHR_copy_memory_indirect extension commands
+-    if (!strcmp(name, "CmdCopyMemoryIndirectKHR")) return (void *)table->CmdCopyMemoryIndirectKHR;
+-    if (!strcmp(name, "CmdCopyMemoryToImageIndirectKHR")) return (void *)table->CmdCopyMemoryToImageIndirectKHR;
++    if (nameHash == XXH3_vkCmdCopyMemoryIndirectKHR) return (void *)table->CmdCopyMemoryIndirectKHR;
++    if (nameHash == XXH3_vkCmdCopyMemoryToImageIndirectKHR) return (void *)table->CmdCopyMemoryToImageIndirectKHR;
+ 
      // ---- VK_EXT_debug_marker extension commands
 -    if (!strcmp(name, "DebugMarkerSetObjectTagEXT")) return dev->layer_extensions.ext_debug_marker_enabled ? (void *)DebugMarkerSetObjectTagEXT : NULL;
 -    if (!strcmp(name, "DebugMarkerSetObjectNameEXT")) return dev->layer_extensions.ext_debug_marker_enabled ? (void *)DebugMarkerSetObjectNameEXT : NULL;
@@ -3165,7 +3173,7 @@ index 4e4b9ad76..ae927c01a 100644
  
      *found_name = false;
      return NULL;
-@@ -3312,280 +3312,279 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
+@@ -3320,280 +3320,279 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
  
  // Instance command lookup function
  VKAPI_ATTR void* VKAPI_CALL loader_lookup_instance_dispatch_table(const VkLayerInstanceDispatchTable *table, const char *name,
@@ -3557,7 +3565,7 @@ index 4e4b9ad76..ae927c01a 100644
  
      *found_name = false;
      return NULL;
-@@ -11178,114 +11177,115 @@ VKAPI_ATTR void VKAPI_CALL CmdDrawMeshTasksIndirectCountEXT(
+@@ -11215,114 +11214,115 @@ VKAPI_ATTR void VKAPI_CALL CmdDrawMeshTasksIndirectCountEXT(
  }
  
  // GPA helpers for extensions
@@ -3696,7 +3704,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.khr_get_physical_device_properties2 == 1)
                       ? (void *)vkGetPhysicalDeviceSparseImageFormatProperties2
                       : NULL;
-@@ -11293,27 +11293,27 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -11330,27 +11330,27 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_KHR_device_group extension commands
@@ -3729,7 +3737,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.khr_device_group_creation == 1)
                       ? (void *)vkEnumeratePhysicalDeviceGroups
                       : NULL;
-@@ -11321,7 +11321,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -11358,7 +11358,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_KHR_external_memory_capabilities extension commands
@@ -3738,7 +3746,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.khr_external_memory_capabilities == 1)
                       ? (void *)vkGetPhysicalDeviceExternalBufferProperties
                       : NULL;
-@@ -11330,30 +11330,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -11367,30 +11367,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_KHR_external_memory_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -3774,7 +3782,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.khr_external_semaphore_capabilities == 1)
                       ? (void *)vkGetPhysicalDeviceExternalSemaphoreProperties
                       : NULL;
-@@ -11362,78 +11362,78 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -11399,78 +11399,78 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_KHR_external_semaphore_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -3868,7 +3876,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.khr_external_fence_capabilities == 1)
                       ? (void *)vkGetPhysicalDeviceExternalFenceProperties
                       : NULL;
-@@ -11442,484 +11442,484 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -11479,494 +11479,494 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_KHR_external_fence_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -4327,6 +4335,18 @@ index 4e4b9ad76..ae927c01a 100644
          return true;
      }
  
+     // ---- VK_KHR_copy_memory_indirect extension commands
+-    if (!strcmp("vkCmdCopyMemoryIndirectKHR", name)) {
++    if (nameHash == XXH3_vkCmdCopyMemoryIndirectKHR) {
+         *addr = (void *)CmdCopyMemoryIndirectKHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdCopyMemoryToImageIndirectKHR", name)) {
++    if (nameHash == XXH3_vkCmdCopyMemoryToImageIndirectKHR) {
+         *addr = (void *)CmdCopyMemoryToImageIndirectKHR;
+         return true;
+     }
+ 
      // ---- VK_EXT_debug_marker extension commands
 -    if (!strcmp("vkDebugMarkerSetObjectTagEXT", name)) {
 +    if (nameHash == XXH3_vkDebugMarkerSetObjectTagEXT) {
@@ -4455,7 +4475,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.nv_external_memory_capabilities == 1)
                       ? (void *)GetPhysicalDeviceExternalImageFormatPropertiesNV
                       : NULL;
-@@ -11928,30 +11928,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -11975,30 +11975,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_NV_external_memory_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -4491,7 +4511,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.ext_direct_mode_display == 1)
                       ? (void *)ReleaseDisplayEXT
                       : NULL;
-@@ -11960,7 +11960,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12007,7 +12007,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_EXT_acquire_xlib_display extension commands
  #if defined(VK_USE_PLATFORM_XLIB_XRANDR_EXT)
@@ -4500,7 +4520,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.ext_acquire_xlib_display == 1)
                       ? (void *)AcquireXlibDisplayEXT
                       : NULL;
-@@ -11968,7 +11968,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12015,7 +12015,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  #endif // VK_USE_PLATFORM_XLIB_XRANDR_EXT
  #if defined(VK_USE_PLATFORM_XLIB_XRANDR_EXT)
@@ -4509,7 +4529,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.ext_acquire_xlib_display == 1)
                       ? (void *)GetRandROutputDisplayEXT
                       : NULL;
-@@ -11977,7 +11977,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12024,7 +12024,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  #endif // VK_USE_PLATFORM_XLIB_XRANDR_EXT
  
      // ---- VK_EXT_display_surface_counter extension commands
@@ -4518,7 +4538,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.ext_display_surface_counter == 1)
                       ? (void *)GetPhysicalDeviceSurfaceCapabilities2EXT
                       : NULL;
-@@ -11985,97 +11985,97 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12032,97 +12032,97 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_EXT_display_control extension commands
@@ -4634,7 +4654,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.ext_debug_utils == 1)
                       ? (void *)CmdInsertDebugUtilsLabelEXT
                       : NULL;
-@@ -12084,13 +12084,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12131,13 +12131,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_ANDROID_external_memory_android_hardware_buffer extension commands
  #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -4650,7 +4670,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (void *)GetMemoryAndroidHardwareBufferANDROID;
          return true;
      }
-@@ -12098,442 +12098,442 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12145,442 +12145,442 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_AMDX_shader_enqueue extension commands
  #if defined(VK_ENABLE_BETA_EXTENSIONS)
@@ -5183,7 +5203,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.ext_acquire_drm_display == 1)
                       ? (void *)GetDrmDisplayEXT
                       : NULL;
-@@ -12541,170 +12541,170 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12588,170 +12588,170 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_EXT_private_data extension commands
@@ -5386,7 +5406,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (void *)GetMemoryZirconHandlePropertiesFUCHSIA;
          return true;
      }
-@@ -12712,13 +12712,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12759,13 +12759,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_FUCHSIA_external_semaphore extension commands
  #if defined(VK_USE_PLATFORM_FUCHSIA)
@@ -5402,7 +5422,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (void *)GetSemaphoreZirconHandleFUCHSIA;
          return true;
      }
-@@ -12726,639 +12726,639 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12773,639 +12773,639 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_FUCHSIA_buffer_collection extension commands
  #if defined(VK_USE_PLATFORM_FUCHSIA)
@@ -6182,7 +6202,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (ptr_instance->enabled_extensions.ohos_surface == 1)
                       ? (void *)CreateSurfaceOHOS
                       : NULL;
-@@ -13367,133 +13367,133 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13414,133 +13414,133 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  #endif // VK_USE_PLATFORM_OHOS
  
      // ---- VK_NV_cooperative_matrix2 extension commands
@@ -6345,7 +6365,7 @@ index 4e4b9ad76..ae927c01a 100644
          *addr = (void *)CmdDrawMeshTasksIndirectCountEXT;
          return true;
      }
-@@ -13665,84 +13665,83 @@ void fill_out_enabled_instance_extensions(uint32_t extension_count, const char *
+@@ -13712,84 +13712,83 @@ void fill_out_enabled_instance_extensions(uint32_t extension_count, const char *
  // Some device commands still need a terminator because the loader needs to unwrap something about them.
  // In many cases, the item needing unwrapping is a VkPhysicalDevice or VkSurfaceKHR object.  But there may be other items
  // in the future.
@@ -7007,7 +7027,7 @@ index 09e7ede63..a2ab4b8b6 100644
      return NULL;
  }
 diff --git a/loader/loader.c b/loader/loader.c
-index 821872174..879e177dd 100644
+index 3e5c2d523..7cd22d49e 100644
 --- a/loader/loader.c
 +++ b/loader/loader.c
 @@ -4460,8 +4460,10 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpdpa_instance_terminator(VkInst
@@ -7197,7 +7217,7 @@ index a1e72147d..72fb1326f 100644
  
  LOADER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateInstanceExtensionProperties(const char *pLayerName,
 diff --git a/loader/wsi.c b/loader/wsi.c
-index af821361b..997ff82ad 100644
+index 5f6b1cdc2..62a33be26 100644
 --- a/loader/wsi.c
 +++ b/loader/wsi.c
 @@ -33,6 +33,7 @@
@@ -7208,7 +7228,7 @@ index af821361b..997ff82ad 100644
  #include "wsi.h"
  
  // The first ICD/Loader interface that support querying the SurfaceKHR from
-@@ -2804,53 +2805,54 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_GetPhysicalDeviceSurfaceFormats2KHR(Vk
+@@ -2843,53 +2844,54 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_GetPhysicalDeviceSurfaceFormats2KHR(Vk
      }
  }
  
@@ -7274,7 +7294,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.khr_surface ? (void *)vkGetPhysicalDeviceSurfaceFormats2KHR : NULL;
          return true;
      }
-@@ -2861,27 +2863,27 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2900,27 +2902,27 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
      // exported from the loader.  Per Khronos decisions, the loader's GIPA
      // function will return the trampoline function for such device-extension
      // functions, regardless of whether the extension has been enabled.
@@ -7308,7 +7328,7 @@ index af821361b..997ff82ad 100644
          *addr = (void *)vkAcquireNextImage2KHR;
          return true;
      }
-@@ -2889,11 +2891,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2928,11 +2930,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
  
      // Functions for the VK_KHR_win32_surface extension:
@@ -7322,7 +7342,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.khr_win32_surface ? (void *)vkGetPhysicalDeviceWin32PresentationSupportKHR : NULL;
          return true;
      }
-@@ -2901,11 +2903,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2940,11 +2942,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
  
      // Functions for the VK_KHR_wayland_surface extension:
@@ -7336,7 +7356,7 @@ index af821361b..997ff82ad 100644
          *addr =
              loader_inst->enabled_extensions.khr_wayland_surface ? (void *)vkGetPhysicalDeviceWaylandPresentationSupportKHR : NULL;
          return true;
-@@ -2914,11 +2916,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2953,11 +2955,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_XCB_KHR)
  
      // Functions for the VK_KHR_xcb_surface extension:
@@ -7350,7 +7370,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.khr_xcb_surface ? (void *)vkGetPhysicalDeviceXcbPresentationSupportKHR : NULL;
          return true;
      }
-@@ -2926,11 +2928,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2965,11 +2967,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_XLIB_KHR)
  
      // Functions for the VK_KHR_xlib_surface extension:
@@ -7364,7 +7384,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.khr_xlib_surface ? (void *)vkGetPhysicalDeviceXlibPresentationSupportKHR : NULL;
          return true;
      }
-@@ -2938,11 +2940,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2977,11 +2979,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_DIRECTFB_EXT)
  
      // Functions for the VK_EXT_directfb_surface extension:
@@ -7378,7 +7398,7 @@ index af821361b..997ff82ad 100644
          *addr =
              loader_inst->enabled_extensions.ext_directfb_surface ? (void *)vkGetPhysicalDeviceDirectFBPresentationSupportEXT : NULL;
          return true;
-@@ -2951,7 +2953,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2990,7 +2992,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_ANDROID_KHR)
  
      // Functions for the VK_KHR_android_surface extension:
@@ -7387,7 +7407,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.khr_android_surface ? (void *)vkCreateAndroidSurfaceKHR : NULL;
          return true;
      }
-@@ -2960,7 +2962,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -2999,7 +3001,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_MACOS_MVK)
  
      // Functions for the VK_MVK_macos_surface extension:
@@ -7396,7 +7416,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.mvk_macos_surface ? (void *)vkCreateMacOSSurfaceMVK : NULL;
          return true;
      }
-@@ -2968,7 +2970,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -3007,7 +3009,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_IOS_MVK)
  
      // Functions for the VK_MVK_ios_surface extension:
@@ -7405,7 +7425,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.mvk_ios_surface ? (void *)vkCreateIOSSurfaceMVK : NULL;
          return true;
      }
-@@ -2976,7 +2978,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -3015,7 +3017,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_GGP)
  
      // Functions for the VK_GGP_stream_descriptor_surface extension:
@@ -7414,7 +7434,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.wsi_ggp_surface_enabled ? (void *)vkCreateStreamDescriptorSurfaceGGP : NULL;
          return true;
      }
-@@ -2984,7 +2986,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -3023,7 +3025,7 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_FUCHSIA)
  
      // Functions for the VK_FUCHSIA_imagepipe_surface extension:
@@ -7423,7 +7443,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.fuchsia_imagepipe_surface ? (void *)vkCreateImagePipeSurfaceFUCHSIA : NULL;
          return true;
      }
-@@ -2992,14 +2994,14 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -3031,14 +3033,14 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #endif  // VK_USE_PLATFORM_FUCHSIA
  
      // Functions for the VK_EXT_headless_surface extension:
@@ -7440,7 +7460,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.ext_metal_surface ? (void *)vkCreateMetalSurfaceEXT : NULL;
          return true;
      }
-@@ -3008,11 +3010,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -3047,11 +3049,11 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_SCREEN_QNX)
  
      // Functions for the VK_QNX_screen_surface extension:
@@ -7454,7 +7474,7 @@ index af821361b..997ff82ad 100644
          *addr = loader_inst->enabled_extensions.qnx_screen_surface ? (void *)vkGetPhysicalDeviceScreenPresentationSupportQNX : NULL;
          return true;
      }
-@@ -3021,64 +3023,64 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
+@@ -3060,64 +3062,64 @@ bool wsi_swapchain_instance_gpa(struct loader_instance *loader_inst, const char
  #if defined(VK_USE_PLATFORM_VI_NN)
  
      // Functions for the VK_NN_vi_surface extension:
