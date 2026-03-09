@@ -22,8 +22,8 @@ fi
 		pip install .
 	popd
 
-	# Upstream GLAD does not support --mx-global anymore, try once with and
-	# once without that argument
+	# Try with the fork's version of arguments first, and fall back to
+	# upstream-compatible ones.
 	glad --reproducible --api=vulkan --out-path="${OUTDIR}" --merge c --alias --loader --use-pfn-ranges || \
 		glad --reproducible --api=vulkan --out-path="${OUTDIR}" --merge c --alias --loader
 
