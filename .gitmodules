@@ -13,3 +13,6 @@
 [submodule "extern/Vulkan-Headers"]
 	path = extern/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers
+[submodule "extern/gloam"]
+	path = extern/gloam
+	url = https://github.com/tycho/gloam.git

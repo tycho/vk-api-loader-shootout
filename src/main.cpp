@@ -17,8 +17,10 @@
 #include <volk.h>
 #elif defined(USE_GLAD)
 #include <glad/vulkan.h>
+#elif defined(USE_GLOAM)
+#include <gloam/vk.h>
 #else
-#error "Must define either USE_VOLK or USE_GLAD for this to compile"
+#error "Must define either USE_VOLK, USE_GLOAM, or USE_GLAD for this to compile"
 #endif
 
 // ARGH, Microsoft!
@@ -117,6 +119,12 @@ static bool loader_init()
         std::cerr << "Failed to initialize GLAD!" << std::endl;
         return false;
     }
+#elif defined(USE_GLOAM)
+    int vk_version = gloamLoaderLoadVulkan(NULL, NULL, NULL);
+    if (!vk_version) {
+        std::cerr << "Failed to initialize gloam!" << std::endl;
+        return false;
+    }
 #endif
     return true;
 }
@@ -130,6 +138,12 @@ static bool loader_load_instance(VkInstance instance)
     int vk_version = gladLoaderLoadVulkan(instance, NULL, NULL);
     if (!vk_version) {
         std::cerr << "GLAD failed to load VK instance functions!" << std::endl;
+        return false;
+    }
+#elif defined(USE_GLOAM)
+    int vk_version = gloamLoaderLoadVulkan(instance, NULL, NULL);
+    if (!vk_version) {
+        std::cerr << "gloam failed to load VK instance functions!" << std::endl;
         return false;
     }
 #endif
@@ -147,6 +161,12 @@ static bool loader_load_device(VkInstance instance, VkPhysicalDevice physicalDev
         std::cerr << "GLAD failed to load VK device functions!" << std::endl;
         return false;
     }
+#elif defined(USE_GLOAM)
+    int vk_version = gloamLoaderLoadVulkan(instance, physicalDevice, device);
+    if (!vk_version) {
+        std::cerr << "gloam failed to load VK device functions!" << std::endl;
+        return false;
+    }
 #endif
     return true;
 }
@@ -158,6 +178,8 @@ static bool loader_destroy()
     volkFinalize();
 #elif defined(USE_GLAD)
     gladLoaderUnloadVulkan();
+#elif defined(USE_GLOAM)
+    gloamLoaderUnloadVulkan();
 #endif
     return true;
 }
@@ -192,8 +214,10 @@ int main() {
     VkInstanceCreateInfo instanceCreateInfo{};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &appInfo;
-#ifdef GLAD_VK_KHR_portability_enumeration
+#if defined(GLAD_VK_KHR_portability_enumeration)
     supportsPortabilityEnumeration = GLAD_VK_KHR_portability_enumeration;
+#elif defined(GLOAM_VK_KHR_portability_enumeration)
+    supportsPortabilityEnumeration = GLOAM_VK_KHR_portability_enumeration;
 #else
     {
         uint32_t count = 0;

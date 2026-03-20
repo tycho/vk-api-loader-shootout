@@ -48,6 +48,7 @@ VOLK_VERSION := $(shell cd extern/volk && git describe --tags | sed 's/^vulkan-s
 XXHASH_VERSION := $(shell cd extern/glad-tycho/third_party/xxHash && git describe --tags | sed 's/^v//')
 VK_HEADERS_VERSION := $(shell cd extern/Vulkan-Headers && git describe --tags | sed 's/^v//')
 GLAD_TYCHO_VERSION := $(shell cd extern/glad-tycho && git describe --tags | sed 's/^v//')
+GLOAM_VERSION := $(shell cd extern/gloam && git describe --tags | sed 's/^v//')
 GLAD_DAV1DDE_VERSION := $(shell cd extern/glad-dav1dde && git describe --tags | sed 's/^v//')
 
 CC_VERSION := $(shell $(CC) -dumpversion)
@@ -74,6 +75,7 @@ run: build
 	@echo "|----------------|-----------------------------|"
 	@echo "| GLAD (dav1dde) | \`$(GLAD_DAV1DDE_VERSION)\` |"
 	@echo "| GLAD (tycho)   | \`$(GLAD_TYCHO_VERSION)\`   |"
+	@echo "| gloam          | \`$(GLOAM_VERSION)\`        |"
 	@echo "| Volk           | \`$(VOLK_VERSION)\`         |"
 	@echo "| xxHash         | \`$(XXHASH_VERSION)\`       |"
 	@echo "| Vulkan-Headers | \`$(VK_HEADERS_VERSION)\`   |"
@@ -96,6 +98,9 @@ run: build
 	@echo
 	@echo "[GLAD (tycho)](https://github.com/tycho/glad)"
 	@(cd bin; ./test-glad-tycho)
+	@echo
+	@echo "[Gloam](https://github.com/tycho/gloam)"
+	@(cd bin; ./test-gloam)
 	@echo
 	@echo "[Volk](https://github.com/zeux/volk)"
 	@(cd bin; ./test-volk)
@@ -120,7 +125,7 @@ run: build
 	@vulkaninfo --summary | grep -A9999 '^Devices:$$'
 	@echo "\`\`\`"
 
-build: bin/test-volk bin/test-glad-dav1dde bin/test-glad-tycho
+build: bin/test-volk bin/test-glad-dav1dde bin/test-glad-tycho bin/test-gloam
 
 .PHONY: all clean distclean run build
 
@@ -134,6 +139,11 @@ bin/test-glad-dav1dde: src/main.cpp generated/glad-dav1dde/src/vulkan.c .cflags
 	$(CC) -c -o obj/loader-glad-dav1dde.o $(OPTFLAGS) $(CFLAGS) -Igenerated/glad-dav1dde/include generated/glad-dav1dde/src/vulkan.c
 	$(CXX) -c -o obj/main-glad-dav1dde.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Igenerated/glad-dav1dde/include src/main.cpp
 	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-dav1dde.o obj/main-glad-dav1dde.o
+	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
+bin/test-gloam: src/main.cpp generated/gloam/src/vk.c .cflags
+	$(CC) -c -o obj/loader-gloam.o $(OPTFLAGS) $(CFLAGS) -Igenerated/gloam/include generated/gloam/src/vk.c
+	$(CXX) -c -o obj/main-gloam.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLOAM -Igenerated/gloam/include src/main.cpp
+	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-gloam.o obj/main-gloam.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
 bin/test-glad-tycho: src/main.cpp generated/glad-tycho/src/vulkan.c extern/glad-tycho/third_party/xxHash/xxhash.h .cflags
 	$(CC) -c -o obj/loader-glad-tycho.o $(OPTFLAGS) $(CFLAGS) -Igenerated/glad-tycho/include -Iextern/glad-tycho/third_party/xxHash generated/glad-tycho/src/vulkan.c
@@ -153,7 +163,11 @@ gen-glad-tycho:
 	scripts/gen-glad.sh extern/glad-tycho venv/glad-tycho generated/glad-tycho
 generated/glad-tycho/src/vulkan.c: scripts/gen-glad.sh
 	scripts/gen-glad.sh extern/glad-tycho venv/glad-tycho generated/glad-tycho
-.PHONY: gen-glad-dav1dde gen-glad-tycho
+gen-gloam:
+	scripts/gen-gloam.sh extern/gloam generated/gloam
+generated/gloam/src/vk.c: scripts/gen-gloam.sh
+	scripts/gen-gloam.sh extern/gloam generated/gloam
+.PHONY: gen-glad-dav1dde gen-glad-tycho gen-gloam
 
 ifeq (,$(findstring clean,$(MAKECMDGOALS)))
 
