@@ -1,8 +1,6 @@
-Overview
-========
+# Overview
 
-Building
---------
+## Building
 
 To build and run this:
 
@@ -16,8 +14,7 @@ This should just work on Windows and Linux. On macOS, you will need to install
 MoltenVK via the Vulkan SDK.
 
 
-Dependencies
-------------
+## Dependencies
 
 You'll want the following tools installed to build:
 
@@ -32,11 +29,10 @@ And of course you'll need a system-wide installation of libvulkan and
 a functional Vulkan driver.
 
 
-Results
-=======
+## Results
 
-Linux
------
+### Linux
+
 | Project        | Version (git describe)      |
 |----------------|-----------------------------|
 | GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
@@ -131,8 +127,8 @@ GPU0:
         driverUUID         = cacc304f-7167-5cf5-a6bd-293f0657ef84
 ```
 
-MinGW
------
+### MinGW
+
 | Project        | Version (git describe)      |
 |----------------|-----------------------------|
 | GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
@@ -227,8 +223,8 @@ GPU0:
         driverUUID         = d7ce4bc1-acf9-5be0-875a-ebb2a6300feb
 ```
 
-macOS
------
+### macOS
+
 | Project        | Version (git describe)      |
 |----------------|-----------------------------|
 | GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
@@ -336,11 +332,9 @@ GPU1:
         driverUUID         = 258801e9-778a-3af1-b03f-46cef7603a2a
 ```
 
-Commentary
-==========
+# Commentary
 
-libvulkan is slow
------------------
+## libvulkan is slow
 
 The majority of the time in Gloam is taken up by `strcmp()` calls inside
 libvulkan. This, frustratingly, is how libvulkan decides which function pointer
@@ -350,6 +344,8 @@ the same kind of strategy I used in Gloam and my GLAD fork: precomputed XXH3
 up being dramatically faster than repeated string comparisons. The libvulkan
 patch is available
 [here](https://github.com/tycho/vk-api-loader-shootout/blob/master/experiments/0001-use-xxhash-for-function-name-lookups.patch).
+
+### Linux
 
 Here's the Linux build from the previous section, run with a patched libvulkan
 dropped into the `bin/` directory (`make run` adds the folder to
@@ -387,6 +383,8 @@ Note in particular how much faster volk is with that patch (compared to
 [above](#linux)). We cut around 90% of our `Teardown and full init` test time
 by using a patched libvulkan.
 
+### MinGW
+
 This approach helps on Windows too. Here's MinGW with a patched libvulkan DLL
 added to the `bin` directory:
 
@@ -418,6 +416,8 @@ added to the `bin` directory:
 | Load device functions   | 200 | 14496          | 72.48            |
 | Teardown and full init  | 20 | 1803          | 90.15            |
 
+### macOS
+
 And on macOS with a patched libvulkan:
 
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
@@ -448,8 +448,7 @@ And on macOS with a patched libvulkan:
 | Load device functions   | 200 | 2150          | 10.75            |
 | Teardown and full init  | 20 | 275          | 13.75            |
 
-Why is Volk so fast?
-------------------------
+## Why is Volk so fast?
 
 There's a major notable feature GLAD/Gloam have that volk does not provide:
 extension detection. With GLAD and Gloam, you can do things after the API
