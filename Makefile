@@ -45,7 +45,7 @@ CXXFLAGS := -std=c++20
 #endif
 
 VOLK_VERSION := $(shell cd extern/volk && git describe --tags | sed 's/^vulkan-sdk-//g;s/^v//g')
-XXHASH_VERSION := $(shell cd extern/glad-tycho/third_party/xxHash && git describe --tags | sed 's/^v//')
+XXHASH_VERSION := $(shell cd extern/xxHash && git describe --tags | sed 's/^v//')
 VK_HEADERS_VERSION := $(shell cd extern/Vulkan-Headers && git describe --tags | sed 's/^v//')
 GLAD_TYCHO_VERSION := $(shell cd extern/glad-tycho && git describe --tags | sed 's/^v//')
 GLOAM_VERSION := $(shell cd extern/gloam && git describe --tags | sed 's/^v//')
@@ -140,14 +140,14 @@ bin/test-glad-dav1dde: src/main.cpp generated/glad-dav1dde/src/vulkan.c .cflags
 	$(CXX) -c -o obj/main-glad-dav1dde.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Igenerated/glad-dav1dde/include src/main.cpp
 	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-dav1dde.o obj/main-glad-dav1dde.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
-bin/test-gloam: src/main.cpp generated/gloam/src/vk.c .cflags
-	$(CC) -c -o obj/loader-gloam.o $(OPTFLAGS) $(CFLAGS) -Igenerated/gloam/include generated/gloam/src/vk.c
+bin/test-gloam: src/main.cpp generated/gloam/src/vk.c extern/xxHash/xxhash.h .cflags
+	$(CC) -c -o obj/loader-gloam.o $(OPTFLAGS) $(CFLAGS) -Iextern/xxHash -Igenerated/gloam/include generated/gloam/src/vk.c
 	$(CXX) -c -o obj/main-gloam.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLOAM -Igenerated/gloam/include src/main.cpp
 	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-gloam.o obj/main-gloam.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
-bin/test-glad-tycho: src/main.cpp generated/glad-tycho/src/vulkan.c extern/glad-tycho/third_party/xxHash/xxhash.h .cflags
-	$(CC) -c -o obj/loader-glad-tycho.o $(OPTFLAGS) $(CFLAGS) -Igenerated/glad-tycho/include -Iextern/glad-tycho/third_party/xxHash generated/glad-tycho/src/vulkan.c
-	$(CXX) -c -o obj/main-glad-tycho.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Igenerated/glad-tycho/include -Iextern/glad-tycho/third_party/xxHash src/main.cpp
+bin/test-glad-tycho: src/main.cpp generated/glad-tycho/src/vulkan.c extern/xxHash/xxhash.h .cflags
+	$(CC) -c -o obj/loader-glad-tycho.o $(OPTFLAGS) $(CFLAGS) -Iextern/xxHash -Igenerated/glad-tycho/include generated/glad-tycho/src/vulkan.c
+	$(CXX) -c -o obj/main-glad-tycho.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Iextern/xxHash -Igenerated/glad-tycho/include src/main.cpp
 	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-tycho.o obj/main-glad-tycho.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
 

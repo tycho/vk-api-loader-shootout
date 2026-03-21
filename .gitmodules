@@ -16,3 +16,6 @@
 [submodule "extern/gloam"]
 	path = extern/gloam
 	url = https://github.com/tycho/gloam.git
+[submodule "extern/xxHash"]
+	path = extern/xxHash
+	url = https://github.com/Cyan4973/xxHash

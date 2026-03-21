@@ -16,6 +16,8 @@ rm -rf "$OUTDIR"
 
 	gloam --api=vulkan --out-path="${OUTDIR}" --merge c --alias --loader
 
+	# We use a common version from extern/xxHash instead
+	rm -f "${OUTDIR}/include/xxhash.h"
 )
 
 exit 0
