@@ -1,4 +1,4 @@
-From 9dbdd360f0fb5ba067e849d23a0cfaba408d8e99 Mon Sep 17 00:00:00 2001
+From 1693d6b580b1395f88440a6e30d6b1654108feab Mon Sep 17 00:00:00 2001
 From: Steven Noonan <steven@uplinklabs.net>
 Date: Sun, 5 Oct 2025 23:41:01 -0700
 Subject: [PATCH 1/2] use xxhash for function name lookups
@@ -7,22 +7,19 @@ Signed-off-by: Steven Noonan <steven@uplinklabs.net>
 ---
  loader/debug_utils.c                          |   16 +-
  loader/debug_utils.h                          |    2 +-
- loader/generated/vk_command_name_hashes.h     |  817 ++
- loader/generated/vk_layer_dispatch_table.h    |   19 -
- loader/generated/vk_loader_extensions.c       | 2891 +++----
- loader/generated/vk_loader_extensions.h       |   23 +-
- loader/generated/vk_object_types.h            |   48 +-
+ loader/generated/vk_command_name_hashes.h     |  850 ++
+ loader/generated/vk_loader_extensions.c       | 2723 ++++---
+ loader/generated/vk_loader_extensions.h       |    9 +-
  loader/gpa_helper.c                           |  487 +-
  loader/loader.c                               |   43 +-
  loader/trampoline.c                           |   25 +-
  loader/wsi.c                                  |  100 +-
  loader/wsi.h                                  |    2 +-
- loader/xxhash.h                               | 7246 +++++++++++++++++
+ loader/xxhash.h                               | 7238 +++++++++++++++++
  scripts/generate_source.py                    |    6 +
  .../generators/command_name_hash_generator.py |   90 +
  .../generators/loader_extension_generator.py  |   32 +-
- .../generated/vk_dispatch_table_helper.h      |   13 -
- 17 files changed, 9841 insertions(+), 2019 deletions(-)
+ 14 files changed, 9910 insertions(+), 1713 deletions(-)
  create mode 100644 loader/generated/vk_command_name_hashes.h
  create mode 100644 loader/xxhash.h
  create mode 100644 scripts/generators/command_name_hash_generator.py
@@ -91,10 +88,10 @@ index 9472ef947..cbefa1089 100644
                                           VkDebugUtilsMessageTypeFlagsEXT *da_type);
 diff --git a/loader/generated/vk_command_name_hashes.h b/loader/generated/vk_command_name_hashes.h
 new file mode 100644
-index 000000000..4f337dddd
+index 000000000..3b6eda24a
 --- /dev/null
 +++ b/loader/generated/vk_command_name_hashes.h
-@@ -0,0 +1,817 @@
+@@ -0,0 +1,850 @@
 +// *** THIS FILE IS GENERATED - DO NOT EDIT ***
 +// See command_name_hash_generator.py for modifications
 +
@@ -152,6 +149,8 @@ index 000000000..4f337dddd
 +#define XXH3_vkBindVideoSessionMemoryKHR 0x95fd48feaefe8c46ULL
 +#define XXH3_vkBuildAccelerationStructuresKHR 0x2d831a042e0d1b62ULL
 +#define XXH3_vkBuildMicromapsEXT 0x31070cdf29394f00ULL
++#define XXH3_vkClearShaderInstrumentationMetricsARM 0x1a83ca84024bb872ULL
++#define XXH3_vkCmdBeginConditionalRendering2EXT 0x118c08bcfab446acULL
 +#define XXH3_vkCmdBeginConditionalRenderingEXT 0x73bc2739d085085fULL
 +#define XXH3_vkCmdBeginCustomResolveEXT 0x4e10b38e08b6ac9dULL
 +#define XXH3_vkCmdBeginDebugUtilsLabelEXT 0xa53a9028f9deee27ULL
@@ -163,6 +162,8 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdBeginRenderPass2KHR 0x953dd320a2f19033ULL
 +#define XXH3_vkCmdBeginRendering 0x950906daed043635ULL
 +#define XXH3_vkCmdBeginRenderingKHR 0xf525fcfca497ad4dULL
++#define XXH3_vkCmdBeginShaderInstrumentationARM 0x1a8eabeb25858005ULL
++#define XXH3_vkCmdBeginTransformFeedback2EXT 0x5c00d903c514b039ULL
 +#define XXH3_vkCmdBeginTransformFeedbackEXT 0xae000b2715cd085cULL
 +#define XXH3_vkCmdBeginVideoCodingKHR 0xcfa13bad1a984ba3ULL
 +#define XXH3_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT 0x908be4be59b54beeULL
@@ -174,6 +175,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdBindIndexBuffer 0x668f24a3147926dbULL
 +#define XXH3_vkCmdBindIndexBuffer2 0x540370e7058dd6acULL
 +#define XXH3_vkCmdBindIndexBuffer2KHR 0x6fde01fd66c6087aULL
++#define XXH3_vkCmdBindIndexBuffer3KHR 0xb69a41e81aeab541ULL
 +#define XXH3_vkCmdBindInvocationMaskHUAWEI 0x5dd077e15ef82882ULL
 +#define XXH3_vkCmdBindPipeline 0x093d8596adfdb576ULL
 +#define XXH3_vkCmdBindPipelineShaderGroupNV 0xfb6168e88a9522eeULL
@@ -182,10 +184,12 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdBindShadersEXT 0x213f8b33c25f4ec9ULL
 +#define XXH3_vkCmdBindShadingRateImageNV 0x36135fe5c54d3b34ULL
 +#define XXH3_vkCmdBindTileMemoryQCOM 0x271a389035d7932eULL
++#define XXH3_vkCmdBindTransformFeedbackBuffers2EXT 0xa66b4a7c3b72fdb5ULL
 +#define XXH3_vkCmdBindTransformFeedbackBuffersEXT 0x24975600fb49fd73ULL
 +#define XXH3_vkCmdBindVertexBuffers 0x9beb233b5b7ad768ULL
 +#define XXH3_vkCmdBindVertexBuffers2 0xf5dd10901cd99b7eULL
 +#define XXH3_vkCmdBindVertexBuffers2EXT 0x95e7e04ef3cf5655ULL
++#define XXH3_vkCmdBindVertexBuffers3KHR 0x54867af44e52a3edULL
 +#define XXH3_vkCmdBlitImage 0x38f59a81a499abecULL
 +#define XXH3_vkCmdBlitImage2 0xfb75695f0deb8eb6ULL
 +#define XXH3_vkCmdBlitImage2KHR 0xcdda04206e1c1dfeULL
@@ -215,15 +219,19 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdCopyImageToBuffer 0x88c098a6d45aa827ULL
 +#define XXH3_vkCmdCopyImageToBuffer2 0x07b8ecf11f0a147aULL
 +#define XXH3_vkCmdCopyImageToBuffer2KHR 0x02eb4358362cbe5fULL
++#define XXH3_vkCmdCopyImageToMemoryKHR 0xbbc7401f904bd140ULL
 +#define XXH3_vkCmdCopyMemoryIndirectKHR 0x8be9c061dfeccd83ULL
 +#define XXH3_vkCmdCopyMemoryIndirectNV 0xea1cabf280ef8b04ULL
++#define XXH3_vkCmdCopyMemoryKHR 0x20154ff052daf496ULL
 +#define XXH3_vkCmdCopyMemoryToAccelerationStructureKHR 0xc24235cf58916cb3ULL
 +#define XXH3_vkCmdCopyMemoryToImageIndirectKHR 0x8c44d66daa2b8a1dULL
 +#define XXH3_vkCmdCopyMemoryToImageIndirectNV 0x41a01ed27bc041f2ULL
++#define XXH3_vkCmdCopyMemoryToImageKHR 0x18d81bf228ba07d7ULL
 +#define XXH3_vkCmdCopyMemoryToMicromapEXT 0x09bcf6218bf7a7ccULL
 +#define XXH3_vkCmdCopyMicromapEXT 0x07982f27d5cc9e3dULL
 +#define XXH3_vkCmdCopyMicromapToMemoryEXT 0x31241535b9bc3b52ULL
 +#define XXH3_vkCmdCopyQueryPoolResults 0xe133357d099609f5ULL
++#define XXH3_vkCmdCopyQueryPoolResultsToMemoryKHR 0xc9da3fa3a6a6daa0ULL
 +#define XXH3_vkCmdCopyTensorARM 0x7a423d05d8869f5eULL
 +#define XXH3_vkCmdCuLaunchKernelNVX 0xc8ce9307051f9bc4ULL
 +#define XXH3_vkCmdCudaLaunchKernelNV 0x9508bfb817e18156ULL
@@ -243,21 +251,29 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdDispatchGraphIndirectAMDX 0x4e7d037aae3a3033ULL
 +#define XXH3_vkCmdDispatchGraphIndirectCountAMDX 0xd8c4bb7f3586d513ULL
 +#define XXH3_vkCmdDispatchIndirect 0xdac55f445397e484ULL
++#define XXH3_vkCmdDispatchIndirect2KHR 0xf4288f12356e8954ULL
 +#define XXH3_vkCmdDispatchTileQCOM 0x8055346a0f097869ULL
 +#define XXH3_vkCmdDraw 0x6b0e217ae8f0f1acULL
 +#define XXH3_vkCmdDrawClusterHUAWEI 0xcd3579faa9244fe8ULL
 +#define XXH3_vkCmdDrawClusterIndirectHUAWEI 0x753af4a2035f5325ULL
 +#define XXH3_vkCmdDrawIndexed 0xf9b2570c3144fc75ULL
 +#define XXH3_vkCmdDrawIndexedIndirect 0x75ffe5f7fd486bddULL
++#define XXH3_vkCmdDrawIndexedIndirect2KHR 0x5959af04e0c3977eULL
 +#define XXH3_vkCmdDrawIndexedIndirectCount 0x1d4114fa0cce1718ULL
++#define XXH3_vkCmdDrawIndexedIndirectCount2KHR 0x7f65e7b0baea8f9fULL
 +#define XXH3_vkCmdDrawIndexedIndirectCountAMD 0x95e478a17bd017c9ULL
 +#define XXH3_vkCmdDrawIndexedIndirectCountKHR 0xa343558c3889eb3bULL
 +#define XXH3_vkCmdDrawIndirect 0xf9cc9eb6cea6c9cbULL
++#define XXH3_vkCmdDrawIndirect2KHR 0xa6b2174f0933d297ULL
++#define XXH3_vkCmdDrawIndirectByteCount2EXT 0xb9b9c5462011fe01ULL
 +#define XXH3_vkCmdDrawIndirectByteCountEXT 0x1028e41b255d6802ULL
 +#define XXH3_vkCmdDrawIndirectCount 0x1b435983eb84abaaULL
++#define XXH3_vkCmdDrawIndirectCount2KHR 0x5dadc24cd47d8c2cULL
 +#define XXH3_vkCmdDrawIndirectCountAMD 0x658b77dd8968ff3bULL
 +#define XXH3_vkCmdDrawIndirectCountKHR 0xd2ada1f0fce0ebc9ULL
 +#define XXH3_vkCmdDrawMeshTasksEXT 0x1660d6d65602a1e2ULL
++#define XXH3_vkCmdDrawMeshTasksIndirect2EXT 0x9dc656c71be6abe5ULL
++#define XXH3_vkCmdDrawMeshTasksIndirectCount2EXT 0x8a60d9d598b70d4bULL
 +#define XXH3_vkCmdDrawMeshTasksIndirectCountEXT 0x3ac504ab87b15a1dULL
 +#define XXH3_vkCmdDrawMeshTasksIndirectCountNV 0xae68bbafa60e1bfdULL
 +#define XXH3_vkCmdDrawMeshTasksIndirectEXT 0x94400ae778a5a963ULL
@@ -278,12 +294,15 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdEndRendering2EXT 0xdc65534119ad5fa9ULL
 +#define XXH3_vkCmdEndRendering2KHR 0x5edb49311b368e96ULL
 +#define XXH3_vkCmdEndRenderingKHR 0x20a57b855bed16adULL
++#define XXH3_vkCmdEndShaderInstrumentationARM 0xa42229d71d9a7fb8ULL
++#define XXH3_vkCmdEndTransformFeedback2EXT 0x8d8edabb53f2e5dcULL
 +#define XXH3_vkCmdEndTransformFeedbackEXT 0x20681e0c6bf30380ULL
 +#define XXH3_vkCmdEndVideoCodingKHR 0xf5243f8ebe970031ULL
 +#define XXH3_vkCmdExecuteCommands 0x1ce083dfe13eae46ULL
 +#define XXH3_vkCmdExecuteGeneratedCommandsEXT 0x95035412cfab2a57ULL
 +#define XXH3_vkCmdExecuteGeneratedCommandsNV 0xc7e4fe21b7623076ULL
 +#define XXH3_vkCmdFillBuffer 0x203c934aa0f948fcULL
++#define XXH3_vkCmdFillMemoryKHR 0x9db8cb3bb765a0fbULL
 +#define XXH3_vkCmdInitializeGraphScratchMemoryAMDX 0xa143601d567d78a8ULL
 +#define XXH3_vkCmdInsertDebugUtilsLabelEXT 0x0f70146a40b73eafULL
 +#define XXH3_vkCmdNextSubpass 0xf8a5e079575f045dULL
@@ -426,6 +445,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdTraceRaysKHR 0x71d79d686f22d526ULL
 +#define XXH3_vkCmdTraceRaysNV 0x877be98356e2a511ULL
 +#define XXH3_vkCmdUpdateBuffer 0xa1e0bb08c1850958ULL
++#define XXH3_vkCmdUpdateMemoryKHR 0xa8a0d3e70a110086ULL
 +#define XXH3_vkCmdUpdatePipelineIndirectBufferNV 0x59e3b39cfad2a148ULL
 +#define XXH3_vkCmdWaitEvents 0x1441dbc95c1af085ULL
 +#define XXH3_vkCmdWaitEvents2 0xba764f7da1952e81ULL
@@ -434,6 +454,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkCmdWriteAccelerationStructuresPropertiesNV 0x9f690b963d6e97a7ULL
 +#define XXH3_vkCmdWriteBufferMarker2AMD 0xb523ea07e8e7d77fULL
 +#define XXH3_vkCmdWriteBufferMarkerAMD 0x75e32a36acf72579ULL
++#define XXH3_vkCmdWriteMarkerToMemoryAMD 0x4fa6132761b6e55fULL
 +#define XXH3_vkCmdWriteMicromapsPropertiesEXT 0xa966bf46df7237f0ULL
 +#define XXH3_vkCmdWriteTimestamp 0xee397d978e3960d4ULL
 +#define XXH3_vkCmdWriteTimestamp2 0x6172f26a7ff5e461ULL
@@ -452,6 +473,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkCopyMemoryToMicromapEXT 0x19f19eb801eb4feaULL
 +#define XXH3_vkCopyMicromapEXT 0xf39873088d0d505aULL
 +#define XXH3_vkCopyMicromapToMemoryEXT 0x0b4161174ca14c67ULL
++#define XXH3_vkCreateAccelerationStructure2KHR 0x840b53251b4fd453ULL
 +#define XXH3_vkCreateAccelerationStructureKHR 0x452970172a23c174ULL
 +#define XXH3_vkCreateAccelerationStructureNV 0x3ce0faf5d18dc25bULL
 +#define XXH3_vkCreateAndroidSurfaceKHR 0xff2edfe5fb33ed95ULL
@@ -512,6 +534,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkCreateSamplerYcbcrConversionKHR 0xbaa71789dfb073b1ULL
 +#define XXH3_vkCreateScreenSurfaceQNX 0x4b8ff5f08d987c5aULL
 +#define XXH3_vkCreateSemaphore 0xb23c3f52093e01eeULL
++#define XXH3_vkCreateShaderInstrumentationARM 0xc7d3f5a7a825f42aULL
 +#define XXH3_vkCreateShaderModule 0xa3fdcfe5e638f01fULL
 +#define XXH3_vkCreateShadersEXT 0x5736d06f9f7521f5ULL
 +#define XXH3_vkCreateSharedSwapchainsKHR 0x73239ae79c84cd85ULL
@@ -520,6 +543,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkCreateSwapchainKHR 0x536ddebd6b81d90aULL
 +#define XXH3_vkCreateTensorARM 0x3934d6b188f309eaULL
 +#define XXH3_vkCreateTensorViewARM 0xc2b3ba3e0620f227ULL
++#define XXH3_vkCreateUbmSurfaceSEC 0x98baf679fba1d09dULL
 +#define XXH3_vkCreateValidationCacheEXT 0x80ad81694be917a9ULL
 +#define XXH3_vkCreateViSurfaceNN 0xe6edbd25c980bbfbULL
 +#define XXH3_vkCreateVideoSessionKHR 0xf8d70781ac92a1cfULL
@@ -576,6 +600,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkDestroySamplerYcbcrConversionKHR 0xb7d326eaca38da93ULL
 +#define XXH3_vkDestroySemaphore 0xa90d9c4553e96cbeULL
 +#define XXH3_vkDestroyShaderEXT 0xb32de6d8d29abe22ULL
++#define XXH3_vkDestroyShaderInstrumentationARM 0x2244cc5659bdd71aULL
 +#define XXH3_vkDestroyShaderModule 0x7cb7f1711b397e5fULL
 +#define XXH3_vkDestroySurfaceKHR 0xb746a730e03f945fULL
 +#define XXH3_vkDestroySwapchainKHR 0x22466386cc1398b8ULL
@@ -596,6 +621,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkEnumeratePhysicalDeviceGroupsKHR 0x52e6981b035c87feULL
 +#define XXH3_vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM 0x3dce79fc9e761dc7ULL
 +#define XXH3_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR 0x077270ba2023329bULL
++#define XXH3_vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM 0x20204067d55f9a2fULL
 +#define XXH3_vkEnumeratePhysicalDevices 0x18d0a02e3ba007feULL
 +#define XXH3_vkExportMetalObjectsEXT 0xcf18436e233f62feULL
 +#define XXH3_vkFlushMappedMemoryRanges 0xcdd7843304775055ULL
@@ -639,7 +665,9 @@ index 000000000..4f337dddd
 +#define XXH3_vkGetDeviceBufferMemoryRequirements 0x15aae27a7223ea5eULL
 +#define XXH3_vkGetDeviceBufferMemoryRequirementsKHR 0x0e4eac678a76ed33ULL
 +#define XXH3_vkGetDeviceCombinedImageSamplerIndexNVX 0xa2d10139110ef6cdULL
++#define XXH3_vkGetDeviceFaultDebugInfoKHR 0xe3c45e7d8043e977ULL
 +#define XXH3_vkGetDeviceFaultInfoEXT 0x166f6358bfe0fce0ULL
++#define XXH3_vkGetDeviceFaultReportsKHR 0x02ba8ccda571ace0ULL
 +#define XXH3_vkGetDeviceGroupPeerMemoryFeatures 0xaf494d1294356cc7ULL
 +#define XXH3_vkGetDeviceGroupPeerMemoryFeaturesKHR 0xe62b971ae0a68532ULL
 +#define XXH3_vkGetDeviceGroupPresentCapabilitiesKHR 0xd537fdf3c85210f2ULL
@@ -776,6 +804,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkGetPhysicalDeviceSurfaceSupportKHR 0xfa972e7a0d03ee3cULL
 +#define XXH3_vkGetPhysicalDeviceToolProperties 0xf14ce64102b8ecedULL
 +#define XXH3_vkGetPhysicalDeviceToolPropertiesEXT 0x537299821dbd504fULL
++#define XXH3_vkGetPhysicalDeviceUbmPresentationSupportSEC 0x675636ce5ed713adULL
 +#define XXH3_vkGetPhysicalDeviceVideoCapabilitiesKHR 0x2517bce1d06e4a03ULL
 +#define XXH3_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR 0xb5b7cd77fde2741aULL
 +#define XXH3_vkGetPhysicalDeviceVideoFormatPropertiesKHR 0xb55826fa36b0b298ULL
@@ -815,6 +844,7 @@ index 000000000..4f337dddd
 +#define XXH3_vkGetSemaphoreZirconHandleFUCHSIA 0xb3fc6ad1eebe5d90ULL
 +#define XXH3_vkGetShaderBinaryDataEXT 0x8b087bf937ffd567ULL
 +#define XXH3_vkGetShaderInfoAMD 0x899487a9c9bfa851ULL
++#define XXH3_vkGetShaderInstrumentationValuesARM 0x7cc597f9fb3b9e9cULL
 +#define XXH3_vkGetShaderModuleCreateInfoIdentifierEXT 0x2ad0e3cb5f37720fULL
 +#define XXH3_vkGetShaderModuleIdentifierEXT 0x0602c29db03eb8abULL
 +#define XXH3_vkGetSwapchainCounterEXT 0x04134f0c5694394fULL
@@ -912,45 +942,8 @@ index 000000000..4f337dddd
 +#define XXH3_vkWriteSamplerDescriptorsEXT 0x9f5f8866993a2ef8ULL
 +#define XXH3_vk_layerGetPhysicalDeviceProcAddr 0x717e697d1633d74dULL
 +// clang-format on
-diff --git a/loader/generated/vk_layer_dispatch_table.h b/loader/generated/vk_layer_dispatch_table.h
-index 7a1ba6483..fac89f30e 100644
---- a/loader/generated/vk_layer_dispatch_table.h
-+++ b/loader/generated/vk_layer_dispatch_table.h
-@@ -312,17 +312,6 @@ typedef struct VkLayerInstanceDispatchTable_ {
- 
-     // ---- VK_ARM_performance_counters_by_region extension commands
-     PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM;
--
--    // ---- VK_ARM_shader_instrumentation extension commands
--    PFN_vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM EnumeratePhysicalDeviceShaderInstrumentationMetricsARM;
--
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    PFN_vkCreateUbmSurfaceSEC CreateUbmSurfaceSEC;
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    PFN_vkGetPhysicalDeviceUbmPresentationSupportSEC GetPhysicalDeviceUbmPresentationSupportSEC;
--#endif // VK_USE_PLATFORM_UBM_SEC
- } VkLayerInstanceDispatchTable;
- 
- // Device function pointer dispatch table
-@@ -1323,14 +1312,6 @@ typedef struct VkLayerDispatchTable_ {
-     PFN_vkGetMemoryMetalHandlePropertiesEXT GetMemoryMetalHandlePropertiesEXT;
- #endif // VK_USE_PLATFORM_METAL_EXT
- 
--    // ---- VK_ARM_shader_instrumentation extension commands
--    PFN_vkCreateShaderInstrumentationARM CreateShaderInstrumentationARM;
--    PFN_vkDestroyShaderInstrumentationARM DestroyShaderInstrumentationARM;
--    PFN_vkCmdBeginShaderInstrumentationARM CmdBeginShaderInstrumentationARM;
--    PFN_vkCmdEndShaderInstrumentationARM CmdEndShaderInstrumentationARM;
--    PFN_vkGetShaderInstrumentationValuesARM GetShaderInstrumentationValuesARM;
--    PFN_vkClearShaderInstrumentationMetricsARM ClearShaderInstrumentationMetricsARM;
--
-     // ---- VK_EXT_fragment_density_map_offset extension commands
-     PFN_vkCmdEndRendering2EXT CmdEndRendering2EXT;
- 
 diff --git a/loader/generated/vk_loader_extensions.c b/loader/generated/vk_loader_extensions.c
-index 712916ff0..3d6b492ad 100644
+index 61b2920a5..b340b2872 100644
 --- a/loader/generated/vk_loader_extensions.c
 +++ b/loader/generated/vk_loader_extensions.c
 @@ -35,6 +35,7 @@
@@ -961,58 +954,7 @@ index 712916ff0..3d6b492ad 100644
  
  // Device extension error function
  VKAPI_ATTR VkResult VKAPI_CALL vkDevExtError(VkDevice dev) {
-@@ -337,17 +338,6 @@ VKAPI_ATTR bool VKAPI_CALL loader_icd_init_entries(struct loader_instance* inst,
-     // ---- VK_ARM_performance_counters_by_region extension commands
-     LOOKUP_GIPA(EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM);
- 
--    // ---- VK_ARM_shader_instrumentation extension commands
--    LOOKUP_GIPA(EnumeratePhysicalDeviceShaderInstrumentationMetricsARM);
--
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    LOOKUP_GIPA(CreateUbmSurfaceSEC);
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    LOOKUP_GIPA(GetPhysicalDeviceUbmPresentationSupportSEC);
--#endif // VK_USE_PLATFORM_UBM_SEC
--
- #undef LOOKUP_REQUIRED_GIPA
- #undef LOOKUP_GIPA
- 
-@@ -1364,14 +1354,6 @@ VKAPI_ATTR void VKAPI_CALL loader_init_device_extension_dispatch_table(struct lo
-     table->GetMemoryMetalHandlePropertiesEXT = (PFN_vkGetMemoryMetalHandlePropertiesEXT)gdpa(dev, "vkGetMemoryMetalHandlePropertiesEXT");
- #endif // VK_USE_PLATFORM_METAL_EXT
- 
--    // ---- VK_ARM_shader_instrumentation extension commands
--    table->CreateShaderInstrumentationARM = (PFN_vkCreateShaderInstrumentationARM)gdpa(dev, "vkCreateShaderInstrumentationARM");
--    table->DestroyShaderInstrumentationARM = (PFN_vkDestroyShaderInstrumentationARM)gdpa(dev, "vkDestroyShaderInstrumentationARM");
--    table->CmdBeginShaderInstrumentationARM = (PFN_vkCmdBeginShaderInstrumentationARM)gdpa(dev, "vkCmdBeginShaderInstrumentationARM");
--    table->CmdEndShaderInstrumentationARM = (PFN_vkCmdEndShaderInstrumentationARM)gdpa(dev, "vkCmdEndShaderInstrumentationARM");
--    table->GetShaderInstrumentationValuesARM = (PFN_vkGetShaderInstrumentationValuesARM)gdpa(dev, "vkGetShaderInstrumentationValuesARM");
--    table->ClearShaderInstrumentationMetricsARM = (PFN_vkClearShaderInstrumentationMetricsARM)gdpa(dev, "vkClearShaderInstrumentationMetricsARM");
--
-     // ---- VK_EXT_fragment_density_map_offset extension commands
-     table->CmdEndRendering2EXT = (PFN_vkCmdEndRendering2EXT)gdpa(dev, "vkCmdEndRendering2EXT");
- 
-@@ -1693,17 +1675,6 @@ VKAPI_ATTR void VKAPI_CALL loader_init_instance_extension_dispatch_table(VkLayer
- 
-     // ---- VK_ARM_performance_counters_by_region extension commands
-     table->EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM = (PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM)gpa(inst, "vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM");
--
--    // ---- VK_ARM_shader_instrumentation extension commands
--    table->EnumeratePhysicalDeviceShaderInstrumentationMetricsARM = (PFN_vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM)gpa(inst, "vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM");
--
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    table->CreateUbmSurfaceSEC = (PFN_vkCreateUbmSurfaceSEC)gpa(inst, "vkCreateUbmSurfaceSEC");
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    table->GetPhysicalDeviceUbmPresentationSupportSEC = (PFN_vkGetPhysicalDeviceUbmPresentationSupportSEC)gpa(inst, "vkGetPhysicalDeviceUbmPresentationSupportSEC");
--#endif // VK_USE_PLATFORM_UBM_SEC
- }
- 
- // Functions that required a terminator need to have a separate dispatch table which contains their corresponding
-@@ -1773,13 +1744,12 @@ VKAPI_ATTR VkResult VKAPI_CALL SetDebugUtilsObjectTagEXT(
+@@ -1801,13 +1802,12 @@ VKAPI_ATTR VkResult VKAPI_CALL SetDebugUtilsObjectTagEXT(
      const VkDebugUtilsObjectTagInfoEXT*         pTagInfo);
  
  // Device command lookup function
@@ -1027,7 +969,7 @@ index 712916ff0..3d6b492ad 100644
      *found_name = true;
      struct loader_device* dev = (struct loader_device *)table;
      const struct loader_instance* inst = dev->phys_dev_term->this_icd_term->this_instance;
-@@ -1787,1660 +1757,1652 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
+@@ -1815,1688 +1815,1688 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
  
  
      // ---- Core Vulkan 1.0 commands
@@ -2319,6 +2261,52 @@ index 712916ff0..3d6b492ad 100644
 +    if (nameHash == XXH3_vkCmdWriteTimestamp2KHR) return (void *)table->CmdWriteTimestamp2KHR;
 +    if (nameHash == XXH3_vkQueueSubmit2KHR) return (void *)table->QueueSubmit2KHR;
  
+     // ---- VK_KHR_device_address_commands extension commands
+-    if (!strcmp(name, "CmdBindIndexBuffer3KHR")) return (void *)table->CmdBindIndexBuffer3KHR;
+-    if (!strcmp(name, "CmdBindVertexBuffers3KHR")) return (void *)table->CmdBindVertexBuffers3KHR;
+-    if (!strcmp(name, "CmdDrawIndirect2KHR")) return (void *)table->CmdDrawIndirect2KHR;
+-    if (!strcmp(name, "CmdDrawIndexedIndirect2KHR")) return (void *)table->CmdDrawIndexedIndirect2KHR;
+-    if (!strcmp(name, "CmdDispatchIndirect2KHR")) return (void *)table->CmdDispatchIndirect2KHR;
+-    if (!strcmp(name, "CmdCopyMemoryKHR")) return (void *)table->CmdCopyMemoryKHR;
+-    if (!strcmp(name, "CmdCopyMemoryToImageKHR")) return (void *)table->CmdCopyMemoryToImageKHR;
+-    if (!strcmp(name, "CmdCopyImageToMemoryKHR")) return (void *)table->CmdCopyImageToMemoryKHR;
+-    if (!strcmp(name, "CmdUpdateMemoryKHR")) return (void *)table->CmdUpdateMemoryKHR;
+-    if (!strcmp(name, "CmdFillMemoryKHR")) return (void *)table->CmdFillMemoryKHR;
+-    if (!strcmp(name, "CmdCopyQueryPoolResultsToMemoryKHR")) return (void *)table->CmdCopyQueryPoolResultsToMemoryKHR;
+-    if (!strcmp(name, "CmdDrawIndirectCount2KHR")) return (void *)table->CmdDrawIndirectCount2KHR;
+-    if (!strcmp(name, "CmdDrawIndexedIndirectCount2KHR")) return (void *)table->CmdDrawIndexedIndirectCount2KHR;
+-    if (!strcmp(name, "CmdBeginConditionalRendering2EXT")) return (void *)table->CmdBeginConditionalRendering2EXT;
+-    if (!strcmp(name, "CmdBindTransformFeedbackBuffers2EXT")) return (void *)table->CmdBindTransformFeedbackBuffers2EXT;
+-    if (!strcmp(name, "CmdBeginTransformFeedback2EXT")) return (void *)table->CmdBeginTransformFeedback2EXT;
+-    if (!strcmp(name, "CmdEndTransformFeedback2EXT")) return (void *)table->CmdEndTransformFeedback2EXT;
+-    if (!strcmp(name, "CmdDrawIndirectByteCount2EXT")) return (void *)table->CmdDrawIndirectByteCount2EXT;
+-    if (!strcmp(name, "CmdDrawMeshTasksIndirect2EXT")) return (void *)table->CmdDrawMeshTasksIndirect2EXT;
+-    if (!strcmp(name, "CmdDrawMeshTasksIndirectCount2EXT")) return (void *)table->CmdDrawMeshTasksIndirectCount2EXT;
+-    if (!strcmp(name, "CmdWriteMarkerToMemoryAMD")) return (void *)table->CmdWriteMarkerToMemoryAMD;
+-    if (!strcmp(name, "CreateAccelerationStructure2KHR")) return (void *)table->CreateAccelerationStructure2KHR;
++    if (nameHash == XXH3_vkCmdBindIndexBuffer3KHR) return (void *)table->CmdBindIndexBuffer3KHR;
++    if (nameHash == XXH3_vkCmdBindVertexBuffers3KHR) return (void *)table->CmdBindVertexBuffers3KHR;
++    if (nameHash == XXH3_vkCmdDrawIndirect2KHR) return (void *)table->CmdDrawIndirect2KHR;
++    if (nameHash == XXH3_vkCmdDrawIndexedIndirect2KHR) return (void *)table->CmdDrawIndexedIndirect2KHR;
++    if (nameHash == XXH3_vkCmdDispatchIndirect2KHR) return (void *)table->CmdDispatchIndirect2KHR;
++    if (nameHash == XXH3_vkCmdCopyMemoryKHR) return (void *)table->CmdCopyMemoryKHR;
++    if (nameHash == XXH3_vkCmdCopyMemoryToImageKHR) return (void *)table->CmdCopyMemoryToImageKHR;
++    if (nameHash == XXH3_vkCmdCopyImageToMemoryKHR) return (void *)table->CmdCopyImageToMemoryKHR;
++    if (nameHash == XXH3_vkCmdUpdateMemoryKHR) return (void *)table->CmdUpdateMemoryKHR;
++    if (nameHash == XXH3_vkCmdFillMemoryKHR) return (void *)table->CmdFillMemoryKHR;
++    if (nameHash == XXH3_vkCmdCopyQueryPoolResultsToMemoryKHR) return (void *)table->CmdCopyQueryPoolResultsToMemoryKHR;
++    if (nameHash == XXH3_vkCmdDrawIndirectCount2KHR) return (void *)table->CmdDrawIndirectCount2KHR;
++    if (nameHash == XXH3_vkCmdDrawIndexedIndirectCount2KHR) return (void *)table->CmdDrawIndexedIndirectCount2KHR;
++    if (nameHash == XXH3_vkCmdBeginConditionalRendering2EXT) return (void *)table->CmdBeginConditionalRendering2EXT;
++    if (nameHash == XXH3_vkCmdBindTransformFeedbackBuffers2EXT) return (void *)table->CmdBindTransformFeedbackBuffers2EXT;
++    if (nameHash == XXH3_vkCmdBeginTransformFeedback2EXT) return (void *)table->CmdBeginTransformFeedback2EXT;
++    if (nameHash == XXH3_vkCmdEndTransformFeedback2EXT) return (void *)table->CmdEndTransformFeedback2EXT;
++    if (nameHash == XXH3_vkCmdDrawIndirectByteCount2EXT) return (void *)table->CmdDrawIndirectByteCount2EXT;
++    if (nameHash == XXH3_vkCmdDrawMeshTasksIndirect2EXT) return (void *)table->CmdDrawMeshTasksIndirect2EXT;
++    if (nameHash == XXH3_vkCmdDrawMeshTasksIndirectCount2EXT) return (void *)table->CmdDrawMeshTasksIndirectCount2EXT;
++    if (nameHash == XXH3_vkCmdWriteMarkerToMemoryAMD) return (void *)table->CmdWriteMarkerToMemoryAMD;
++    if (nameHash == XXH3_vkCreateAccelerationStructure2KHR) return (void *)table->CreateAccelerationStructure2KHR;
+ 
      // ---- VK_KHR_copy_commands2 extension commands
 -    if (!strcmp(name, "CmdCopyBuffer2KHR")) return (void *)table->CmdCopyBuffer2KHR;
 -    if (!strcmp(name, "CmdCopyImage2KHR")) return (void *)table->CmdCopyImage2KHR;
@@ -2402,6 +2390,12 @@ index 712916ff0..3d6b492ad 100644
 -    if (!strcmp(name, "CmdCopyMemoryToImageIndirectKHR")) return (void *)table->CmdCopyMemoryToImageIndirectKHR;
 +    if (nameHash == XXH3_vkCmdCopyMemoryIndirectKHR) return (void *)table->CmdCopyMemoryIndirectKHR;
 +    if (nameHash == XXH3_vkCmdCopyMemoryToImageIndirectKHR) return (void *)table->CmdCopyMemoryToImageIndirectKHR;
+ 
+     // ---- VK_KHR_device_fault extension commands
+-    if (!strcmp(name, "GetDeviceFaultReportsKHR")) return (void *)table->GetDeviceFaultReportsKHR;
+-    if (!strcmp(name, "GetDeviceFaultDebugInfoKHR")) return (void *)table->GetDeviceFaultDebugInfoKHR;
++    if (nameHash == XXH3_vkGetDeviceFaultReportsKHR) return (void *)table->GetDeviceFaultReportsKHR;
++    if (nameHash == XXH3_vkGetDeviceFaultDebugInfoKHR) return (void *)table->GetDeviceFaultDebugInfoKHR;
  
      // ---- VK_KHR_maintenance10 extension commands
 -    if (!strcmp(name, "CmdEndRendering2KHR")) return (void *)table->CmdEndRendering2KHR;
@@ -3277,14 +3271,20 @@ index 712916ff0..3d6b492ad 100644
 +    if (nameHash == XXH3_vkGetMemoryMetalHandlePropertiesEXT) return (void *)table->GetMemoryMetalHandlePropertiesEXT;
  #endif // VK_USE_PLATFORM_METAL_EXT
  
--    // ---- VK_ARM_shader_instrumentation extension commands
+     // ---- VK_ARM_shader_instrumentation extension commands
 -    if (!strcmp(name, "CreateShaderInstrumentationARM")) return (void *)table->CreateShaderInstrumentationARM;
 -    if (!strcmp(name, "DestroyShaderInstrumentationARM")) return (void *)table->DestroyShaderInstrumentationARM;
 -    if (!strcmp(name, "CmdBeginShaderInstrumentationARM")) return (void *)table->CmdBeginShaderInstrumentationARM;
 -    if (!strcmp(name, "CmdEndShaderInstrumentationARM")) return (void *)table->CmdEndShaderInstrumentationARM;
 -    if (!strcmp(name, "GetShaderInstrumentationValuesARM")) return (void *)table->GetShaderInstrumentationValuesARM;
 -    if (!strcmp(name, "ClearShaderInstrumentationMetricsARM")) return (void *)table->ClearShaderInstrumentationMetricsARM;
--
++    if (nameHash == XXH3_vkCreateShaderInstrumentationARM) return (void *)table->CreateShaderInstrumentationARM;
++    if (nameHash == XXH3_vkDestroyShaderInstrumentationARM) return (void *)table->DestroyShaderInstrumentationARM;
++    if (nameHash == XXH3_vkCmdBeginShaderInstrumentationARM) return (void *)table->CmdBeginShaderInstrumentationARM;
++    if (nameHash == XXH3_vkCmdEndShaderInstrumentationARM) return (void *)table->CmdEndShaderInstrumentationARM;
++    if (nameHash == XXH3_vkGetShaderInstrumentationValuesARM) return (void *)table->GetShaderInstrumentationValuesARM;
++    if (nameHash == XXH3_vkClearShaderInstrumentationMetricsARM) return (void *)table->ClearShaderInstrumentationMetricsARM;
+ 
      // ---- VK_EXT_fragment_density_map_offset extension commands
 -    if (!strcmp(name, "CmdEndRendering2EXT")) return (void *)table->CmdEndRendering2EXT;
 +    if (nameHash == XXH3_vkCmdEndRendering2EXT) return (void *)table->CmdEndRendering2EXT;
@@ -3355,7 +3355,7 @@ index 712916ff0..3d6b492ad 100644
  
      *found_name = false;
      return NULL;
-@@ -3448,297 +3410,285 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
+@@ -3504,296 +3504,295 @@ VKAPI_ATTR void* VKAPI_CALL loader_lookup_device_dispatch_table(const VkLayerDis
  
  // Instance command lookup function
  VKAPI_ATTR void* VKAPI_CALL loader_lookup_instance_dispatch_table(const VkLayerInstanceDispatchTable *table, const char *name,
@@ -3751,220 +3751,24 @@ index 712916ff0..3d6b492ad 100644
  
      // ---- VK_ARM_performance_counters_by_region extension commands
 -    if (!strcmp(name, "EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM")) return (void *)table->EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM;
--
--    // ---- VK_ARM_shader_instrumentation extension commands
--    if (!strcmp(name, "EnumeratePhysicalDeviceShaderInstrumentationMetricsARM")) return (void *)table->EnumeratePhysicalDeviceShaderInstrumentationMetricsARM;
--
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    if (!strcmp(name, "CreateUbmSurfaceSEC")) return (void *)table->CreateUbmSurfaceSEC;
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    if (!strcmp(name, "GetPhysicalDeviceUbmPresentationSupportSEC")) return (void *)table->GetPhysicalDeviceUbmPresentationSupportSEC;
--#endif // VK_USE_PLATFORM_UBM_SEC
 +    if (nameHash == XXH3_vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM) return (void *)table->EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM;
  
+     // ---- VK_ARM_shader_instrumentation extension commands
+-    if (!strcmp(name, "EnumeratePhysicalDeviceShaderInstrumentationMetricsARM")) return (void *)table->EnumeratePhysicalDeviceShaderInstrumentationMetricsARM;
++    if (nameHash == XXH3_vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM) return (void *)table->EnumeratePhysicalDeviceShaderInstrumentationMetricsARM;
+ 
+     // ---- VK_SEC_ubm_surface extension commands
+ #if defined(VK_USE_PLATFORM_UBM_SEC)
+-    if (!strcmp(name, "CreateUbmSurfaceSEC")) return (void *)table->CreateUbmSurfaceSEC;
++    if (nameHash == XXH3_vkCreateUbmSurfaceSEC) return (void *)table->CreateUbmSurfaceSEC;
+ #endif // VK_USE_PLATFORM_UBM_SEC
+ #if defined(VK_USE_PLATFORM_UBM_SEC)
+-    if (!strcmp(name, "GetPhysicalDeviceUbmPresentationSupportSEC")) return (void *)table->GetPhysicalDeviceUbmPresentationSupportSEC;
++    if (nameHash == XXH3_vkGetPhysicalDeviceUbmPresentationSupportSEC) return (void *)table->GetPhysicalDeviceUbmPresentationSupportSEC;
+ #endif // VK_USE_PLATFORM_UBM_SEC
+ 
      *found_name = false;
-     return NULL;
-@@ -11305,122 +11255,6 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumeratePhysicalDeviceQueueFamilyPerf
- }
- 
- 
--// ---- VK_ARM_shader_instrumentation extension trampoline/terminators
--
--VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDeviceShaderInstrumentationMetricsARM(
--    VkPhysicalDevice                            physicalDevice,
--    uint32_t*                                   pDescriptionCount,
--    VkShaderInstrumentationMetricDescriptionARM* pDescriptions) {
--    const VkLayerInstanceDispatchTable *disp;
--    VkPhysicalDevice unwrapped_phys_dev = loader_unwrap_physical_device(physicalDevice);
--    if (VK_NULL_HANDLE == unwrapped_phys_dev) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM: Invalid physicalDevice "
--                   "[VUID-vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM-physicalDevice-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    disp = loader_get_instance_layer_dispatch(physicalDevice);
--    return disp->EnumeratePhysicalDeviceShaderInstrumentationMetricsARM(unwrapped_phys_dev, pDescriptionCount, pDescriptions);
--}
--
--VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumeratePhysicalDeviceShaderInstrumentationMetricsARM(
--    VkPhysicalDevice                            physicalDevice,
--    uint32_t*                                   pDescriptionCount,
--    VkShaderInstrumentationMetricDescriptionARM* pDescriptions) {
--    struct loader_physical_device_term *phys_dev_term = (struct loader_physical_device_term *)physicalDevice;
--    struct loader_icd_term *icd_term = phys_dev_term->this_icd_term;
--    if (NULL == icd_term->dispatch.EnumeratePhysicalDeviceShaderInstrumentationMetricsARM) {
--        loader_log(icd_term->this_instance, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT, 0,
--                   "ICD associated with VkPhysicalDevice does not support EnumeratePhysicalDeviceShaderInstrumentationMetricsARM");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    return icd_term->dispatch.EnumeratePhysicalDeviceShaderInstrumentationMetricsARM(phys_dev_term->phys_dev, pDescriptionCount, pDescriptions);
--}
--
--VKAPI_ATTR VkResult VKAPI_CALL CreateShaderInstrumentationARM(
--    VkDevice                                    device,
--    const VkShaderInstrumentationCreateInfoARM* pCreateInfo,
--    const VkAllocationCallbacks*                pAllocator,
--    VkShaderInstrumentationARM*                 pInstrumentation) {
--    const VkLayerDispatchTable *disp = loader_get_dispatch(device);
--    if (NULL == disp) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkCreateShaderInstrumentationARM: Invalid device "
--                   "[VUID-vkCreateShaderInstrumentationARM-device-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    return disp->CreateShaderInstrumentationARM(device, pCreateInfo, pAllocator, pInstrumentation);
--}
--
--VKAPI_ATTR void VKAPI_CALL DestroyShaderInstrumentationARM(
--    VkDevice                                    device,
--    VkShaderInstrumentationARM                  instrumentation,
--    const VkAllocationCallbacks*                pAllocator) {
--    const VkLayerDispatchTable *disp = loader_get_dispatch(device);
--    if (NULL == disp) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkDestroyShaderInstrumentationARM: Invalid device "
--                   "[VUID-vkDestroyShaderInstrumentationARM-device-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    disp->DestroyShaderInstrumentationARM(device, instrumentation, pAllocator);
--}
--
--VKAPI_ATTR void VKAPI_CALL CmdBeginShaderInstrumentationARM(
--    VkCommandBuffer                             commandBuffer,
--    VkShaderInstrumentationARM                  instrumentation) {
--    const VkLayerDispatchTable *disp = loader_get_dispatch(commandBuffer);
--    if (NULL == disp) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkCmdBeginShaderInstrumentationARM: Invalid commandBuffer "
--                   "[VUID-vkCmdBeginShaderInstrumentationARM-commandBuffer-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    disp->CmdBeginShaderInstrumentationARM(commandBuffer, instrumentation);
--}
--
--VKAPI_ATTR void VKAPI_CALL CmdEndShaderInstrumentationARM(
--    VkCommandBuffer                             commandBuffer) {
--    const VkLayerDispatchTable *disp = loader_get_dispatch(commandBuffer);
--    if (NULL == disp) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkCmdEndShaderInstrumentationARM: Invalid commandBuffer "
--                   "[VUID-vkCmdEndShaderInstrumentationARM-commandBuffer-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    disp->CmdEndShaderInstrumentationARM(commandBuffer);
--}
--
--VKAPI_ATTR VkResult VKAPI_CALL GetShaderInstrumentationValuesARM(
--    VkDevice                                    device,
--    VkShaderInstrumentationARM                  instrumentation,
--    uint32_t*                                   pMetricBlockCount,
--    void*                                       pMetricValues,
--    VkShaderInstrumentationValuesFlagsARM       flags) {
--    const VkLayerDispatchTable *disp = loader_get_dispatch(device);
--    if (NULL == disp) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkGetShaderInstrumentationValuesARM: Invalid device "
--                   "[VUID-vkGetShaderInstrumentationValuesARM-device-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    return disp->GetShaderInstrumentationValuesARM(device, instrumentation, pMetricBlockCount, pMetricValues, flags);
--}
--
--VKAPI_ATTR void VKAPI_CALL ClearShaderInstrumentationMetricsARM(
--    VkDevice                                    device,
--    VkShaderInstrumentationARM                  instrumentation) {
--    const VkLayerDispatchTable *disp = loader_get_dispatch(device);
--    if (NULL == disp) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkClearShaderInstrumentationMetricsARM: Invalid device "
--                   "[VUID-vkClearShaderInstrumentationMetricsARM-device-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    disp->ClearShaderInstrumentationMetricsARM(device, instrumentation);
--}
--
--
- // ---- VK_EXT_fragment_density_map_offset extension trampoline/terminators
- 
- VKAPI_ATTR void VKAPI_CALL CmdEndRendering2EXT(
-@@ -11469,74 +11303,6 @@ VKAPI_ATTR void VKAPI_CALL CmdSetComputeOccupancyPriorityNV(
- }
- 
- 
--// ---- VK_SEC_ubm_surface extension trampoline/terminators
--
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--VKAPI_ATTR VkResult VKAPI_CALL CreateUbmSurfaceSEC(
--    VkInstance                                  instance,
--    const VkUbmSurfaceCreateInfoSEC*            pCreateInfo,
--    const VkAllocationCallbacks*                pAllocator,
--    VkSurfaceKHR*                               pSurface) {
--    struct loader_instance *inst = loader_get_instance(instance);
--    if (NULL == inst) {
--        loader_log(
--            NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--            "vkCreateUbmSurfaceSEC: Invalid instance [VUID-vkCreateUbmSurfaceSEC-instance-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--#error("Not implemented. Likely needs to be manually generated!");
--    return inst->disp->CreateUbmSurfaceSEC(instance, pCreateInfo, pAllocator, pSurface);
--}
--
--VKAPI_ATTR VkResult VKAPI_CALL terminator_CreateUbmSurfaceSEC(
--    VkInstance                                  instance,
--    const VkUbmSurfaceCreateInfoSEC*            pCreateInfo,
--    const VkAllocationCallbacks*                pAllocator,
--    VkSurfaceKHR*                               pSurface) {
--    struct loader_instance *inst = loader_get_instance(instance);
--    if (NULL == inst) {
--        loader_log(
--            NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--            "vkCreateUbmSurfaceSEC: Invalid instance [VUID-vkCreateUbmSurfaceSEC-instance-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--#error("Not implemented. Likely needs to be manually generated!");
--}
--
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--VKAPI_ATTR VkBool32 VKAPI_CALL GetPhysicalDeviceUbmPresentationSupportSEC(
--    VkPhysicalDevice                            physicalDevice,
--    uint32_t                                    queueFamilyIndex,
--    struct ubm_device*                          device) {
--    const VkLayerInstanceDispatchTable *disp;
--    VkPhysicalDevice unwrapped_phys_dev = loader_unwrap_physical_device(physicalDevice);
--    if (VK_NULL_HANDLE == unwrapped_phys_dev) {
--        loader_log(NULL, VULKAN_LOADER_FATAL_ERROR_BIT | VULKAN_LOADER_ERROR_BIT | VULKAN_LOADER_VALIDATION_BIT, 0,
--                   "vkGetPhysicalDeviceUbmPresentationSupportSEC: Invalid physicalDevice "
--                   "[VUID-vkGetPhysicalDeviceUbmPresentationSupportSEC-physicalDevice-parameter]");
--        abort(); /* Intentionally fail so user can correct issue. */
--    }
--    disp = loader_get_instance_layer_dispatch(physicalDevice);
--    return disp->GetPhysicalDeviceUbmPresentationSupportSEC(unwrapped_phys_dev, queueFamilyIndex, device);
--}
--
--VKAPI_ATTR VkBool32 VKAPI_CALL terminator_GetPhysicalDeviceUbmPresentationSupportSEC(
--    VkPhysicalDevice                            physicalDevice,
--    uint32_t                                    queueFamilyIndex,
--    struct ubm_device*                          device) {
--    struct loader_physical_device_term *phys_dev_term = (struct loader_physical_device_term *)physicalDevice;
--    struct loader_icd_term *icd_term = phys_dev_term->this_icd_term;
--    if (NULL == icd_term->dispatch.GetPhysicalDeviceUbmPresentationSupportSEC) {
--        loader_log(icd_term->this_instance, VULKAN_LOADER_ERROR_BIT, 0,
--                   "ICD associated with VkPhysicalDevice does not support GetPhysicalDeviceUbmPresentationSupportSEC");
--        return VK_ERROR_EXTENSION_NOT_PRESENT;
--    }
--    return icd_term->dispatch.GetPhysicalDeviceUbmPresentationSupportSEC(phys_dev_term->phys_dev, queueFamilyIndex, device);
--}
--
--#endif // VK_USE_PLATFORM_UBM_SEC
--
- // ---- VK_KHR_acceleration_structure extension trampoline/terminators
- 
- VKAPI_ATTR VkResult VKAPI_CALL CreateAccelerationStructureKHR(
-@@ -11930,114 +11696,115 @@ VKAPI_ATTR void VKAPI_CALL CmdDrawMeshTasksIndirectCountEXT(
+@@ -12330,114 +12329,115 @@ VKAPI_ATTR void VKAPI_CALL CmdDrawMeshTasksIndirectCountEXT(
  }
  
  // GPA helpers for extensions
@@ -4103,7 +3907,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.khr_get_physical_device_properties2 == 1)
                       ? (void *)vkGetPhysicalDeviceSparseImageFormatProperties2
                       : NULL;
-@@ -12045,27 +11812,27 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12445,27 +12445,27 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_KHR_device_group extension commands
@@ -4136,7 +3940,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.khr_device_group_creation == 1)
                       ? (void *)vkEnumeratePhysicalDeviceGroups
                       : NULL;
-@@ -12073,7 +11840,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12473,7 +12473,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_KHR_external_memory_capabilities extension commands
@@ -4145,7 +3949,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.khr_external_memory_capabilities == 1)
                       ? (void *)vkGetPhysicalDeviceExternalBufferProperties
                       : NULL;
-@@ -12082,30 +11849,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12482,30 +12482,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_KHR_external_memory_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -4181,7 +3985,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.khr_external_semaphore_capabilities == 1)
                       ? (void *)vkGetPhysicalDeviceExternalSemaphoreProperties
                       : NULL;
-@@ -12114,78 +11881,78 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12514,78 +12514,78 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_KHR_external_semaphore_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -4275,7 +4079,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.khr_external_fence_capabilities == 1)
                       ? (void *)vkGetPhysicalDeviceExternalFenceProperties
                       : NULL;
-@@ -12194,504 +11961,504 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -12594,604 +12594,604 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_KHR_external_fence_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -4557,6 +4361,118 @@ index 712916ff0..3d6b492ad 100644
          return true;
      }
  
+     // ---- VK_KHR_device_address_commands extension commands
+-    if (!strcmp("vkCmdBindIndexBuffer3KHR", name)) {
++    if (nameHash == XXH3_vkCmdBindIndexBuffer3KHR) {
+         *addr = (void *)CmdBindIndexBuffer3KHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdBindVertexBuffers3KHR", name)) {
++    if (nameHash == XXH3_vkCmdBindVertexBuffers3KHR) {
+         *addr = (void *)CmdBindVertexBuffers3KHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdDrawIndirect2KHR", name)) {
++    if (nameHash == XXH3_vkCmdDrawIndirect2KHR) {
+         *addr = (void *)CmdDrawIndirect2KHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdDrawIndexedIndirect2KHR", name)) {
++    if (nameHash == XXH3_vkCmdDrawIndexedIndirect2KHR) {
+         *addr = (void *)CmdDrawIndexedIndirect2KHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdDispatchIndirect2KHR", name)) {
++    if (nameHash == XXH3_vkCmdDispatchIndirect2KHR) {
+         *addr = (void *)CmdDispatchIndirect2KHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdCopyMemoryKHR", name)) {
++    if (nameHash == XXH3_vkCmdCopyMemoryKHR) {
+         *addr = (void *)CmdCopyMemoryKHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdCopyMemoryToImageKHR", name)) {
++    if (nameHash == XXH3_vkCmdCopyMemoryToImageKHR) {
+         *addr = (void *)CmdCopyMemoryToImageKHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdCopyImageToMemoryKHR", name)) {
++    if (nameHash == XXH3_vkCmdCopyImageToMemoryKHR) {
+         *addr = (void *)CmdCopyImageToMemoryKHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdUpdateMemoryKHR", name)) {
++    if (nameHash == XXH3_vkCmdUpdateMemoryKHR) {
+         *addr = (void *)CmdUpdateMemoryKHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdFillMemoryKHR", name)) {
++    if (nameHash == XXH3_vkCmdFillMemoryKHR) {
+         *addr = (void *)CmdFillMemoryKHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdCopyQueryPoolResultsToMemoryKHR", name)) {
++    if (nameHash == XXH3_vkCmdCopyQueryPoolResultsToMemoryKHR) {
+         *addr = (void *)CmdCopyQueryPoolResultsToMemoryKHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdDrawIndirectCount2KHR", name)) {
++    if (nameHash == XXH3_vkCmdDrawIndirectCount2KHR) {
+         *addr = (void *)CmdDrawIndirectCount2KHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdDrawIndexedIndirectCount2KHR", name)) {
++    if (nameHash == XXH3_vkCmdDrawIndexedIndirectCount2KHR) {
+         *addr = (void *)CmdDrawIndexedIndirectCount2KHR;
+         return true;
+     }
+-    if (!strcmp("vkCmdBeginConditionalRendering2EXT", name)) {
++    if (nameHash == XXH3_vkCmdBeginConditionalRendering2EXT) {
+         *addr = (void *)CmdBeginConditionalRendering2EXT;
+         return true;
+     }
+-    if (!strcmp("vkCmdBindTransformFeedbackBuffers2EXT", name)) {
++    if (nameHash == XXH3_vkCmdBindTransformFeedbackBuffers2EXT) {
+         *addr = (void *)CmdBindTransformFeedbackBuffers2EXT;
+         return true;
+     }
+-    if (!strcmp("vkCmdBeginTransformFeedback2EXT", name)) {
++    if (nameHash == XXH3_vkCmdBeginTransformFeedback2EXT) {
+         *addr = (void *)CmdBeginTransformFeedback2EXT;
+         return true;
+     }
+-    if (!strcmp("vkCmdEndTransformFeedback2EXT", name)) {
++    if (nameHash == XXH3_vkCmdEndTransformFeedback2EXT) {
+         *addr = (void *)CmdEndTransformFeedback2EXT;
+         return true;
+     }
+-    if (!strcmp("vkCmdDrawIndirectByteCount2EXT", name)) {
++    if (nameHash == XXH3_vkCmdDrawIndirectByteCount2EXT) {
+         *addr = (void *)CmdDrawIndirectByteCount2EXT;
+         return true;
+     }
+-    if (!strcmp("vkCmdDrawMeshTasksIndirect2EXT", name)) {
++    if (nameHash == XXH3_vkCmdDrawMeshTasksIndirect2EXT) {
+         *addr = (void *)CmdDrawMeshTasksIndirect2EXT;
+         return true;
+     }
+-    if (!strcmp("vkCmdDrawMeshTasksIndirectCount2EXT", name)) {
++    if (nameHash == XXH3_vkCmdDrawMeshTasksIndirectCount2EXT) {
+         *addr = (void *)CmdDrawMeshTasksIndirectCount2EXT;
+         return true;
+     }
+-    if (!strcmp("vkCmdWriteMarkerToMemoryAMD", name)) {
++    if (nameHash == XXH3_vkCmdWriteMarkerToMemoryAMD) {
+         *addr = (void *)CmdWriteMarkerToMemoryAMD;
+         return true;
+     }
+-    if (!strcmp("vkCreateAccelerationStructure2KHR", name)) {
++    if (nameHash == XXH3_vkCreateAccelerationStructure2KHR) {
+         *addr = (void *)CreateAccelerationStructure2KHR;
+         return true;
+     }
+ 
      // ---- VK_KHR_copy_commands2 extension commands
 -    if (!strcmp("vkCmdCopyBuffer2KHR", name)) {
 +    if (nameHash == XXH3_vkCmdCopyBuffer2KHR) {
@@ -4746,6 +4662,18 @@ index 712916ff0..3d6b492ad 100644
          return true;
      }
  
+     // ---- VK_KHR_device_fault extension commands
+-    if (!strcmp("vkGetDeviceFaultReportsKHR", name)) {
++    if (nameHash == XXH3_vkGetDeviceFaultReportsKHR) {
+         *addr = (void *)GetDeviceFaultReportsKHR;
+         return true;
+     }
+-    if (!strcmp("vkGetDeviceFaultDebugInfoKHR", name)) {
++    if (nameHash == XXH3_vkGetDeviceFaultDebugInfoKHR) {
+         *addr = (void *)GetDeviceFaultDebugInfoKHR;
+         return true;
+     }
+ 
      // ---- VK_KHR_maintenance10 extension commands
 -    if (!strcmp("vkCmdEndRendering2KHR", name)) {
 +    if (nameHash == XXH3_vkCmdEndRendering2KHR) {
@@ -4886,7 +4814,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.nv_external_memory_capabilities == 1)
                       ? (void *)GetPhysicalDeviceExternalImageFormatPropertiesNV
                       : NULL;
-@@ -12700,30 +12467,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13200,30 +13200,30 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_NV_external_memory_win32 extension commands
  #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -4922,7 +4850,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.ext_direct_mode_display == 1)
                       ? (void *)ReleaseDisplayEXT
                       : NULL;
-@@ -12732,7 +12499,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13232,7 +13232,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_EXT_acquire_xlib_display extension commands
  #if defined(VK_USE_PLATFORM_XLIB_XRANDR_EXT)
@@ -4931,7 +4859,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.ext_acquire_xlib_display == 1)
                       ? (void *)AcquireXlibDisplayEXT
                       : NULL;
-@@ -12740,7 +12507,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13240,7 +13240,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  #endif // VK_USE_PLATFORM_XLIB_XRANDR_EXT
  #if defined(VK_USE_PLATFORM_XLIB_XRANDR_EXT)
@@ -4940,7 +4868,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.ext_acquire_xlib_display == 1)
                       ? (void *)GetRandROutputDisplayEXT
                       : NULL;
-@@ -12749,7 +12516,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13249,7 +13249,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  #endif // VK_USE_PLATFORM_XLIB_XRANDR_EXT
  
      // ---- VK_EXT_display_surface_counter extension commands
@@ -4949,7 +4877,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.ext_display_surface_counter == 1)
                       ? (void *)GetPhysicalDeviceSurfaceCapabilities2EXT
                       : NULL;
-@@ -12757,97 +12524,97 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13257,97 +13257,97 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_EXT_display_control extension commands
@@ -5065,7 +4993,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.ext_debug_utils == 1)
                       ? (void *)CmdInsertDebugUtilsLabelEXT
                       : NULL;
-@@ -12856,13 +12623,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13356,13 +13356,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_ANDROID_external_memory_android_hardware_buffer extension commands
  #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -5081,7 +5009,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (void *)GetMemoryAndroidHardwareBufferANDROID;
          return true;
      }
-@@ -12870,502 +12637,502 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13370,502 +13370,502 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_AMDX_shader_enqueue extension commands
  #if defined(VK_ENABLE_BETA_EXTENSIONS)
@@ -5688,7 +5616,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.ext_acquire_drm_display == 1)
                       ? (void *)GetDrmDisplayEXT
                       : NULL;
-@@ -13373,170 +13140,170 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -13873,170 +13873,170 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
      }
  
      // ---- VK_EXT_private_data extension commands
@@ -5891,7 +5819,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (void *)GetMemoryZirconHandlePropertiesFUCHSIA;
          return true;
      }
-@@ -13544,13 +13311,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -14044,13 +14044,13 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_FUCHSIA_external_semaphore extension commands
  #if defined(VK_USE_PLATFORM_FUCHSIA)
@@ -5907,7 +5835,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (void *)GetSemaphoreZirconHandleFUCHSIA;
          return true;
      }
-@@ -13558,663 +13325,663 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -14058,663 +14058,663 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  
      // ---- VK_FUCHSIA_buffer_collection extension commands
  #if defined(VK_USE_PLATFORM_FUCHSIA)
@@ -6715,7 +6643,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (ptr_instance->enabled_extensions.ohos_surface == 1)
                       ? (void *)CreateSurfaceOHOS
                       : NULL;
-@@ -14223,199 +13990,151 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+@@ -14723,82 +14723,82 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
  #endif // VK_USE_PLATFORM_OHOS
  
      // ---- VK_NV_cooperative_matrix2 extension commands
@@ -6748,36 +6676,43 @@ index 712916ff0..3d6b492ad 100644
          return true;
      }
  
--    // ---- VK_ARM_shader_instrumentation extension commands
+     // ---- VK_ARM_shader_instrumentation extension commands
 -    if (!strcmp("vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM", name)) {
--        *addr = (void *)EnumeratePhysicalDeviceShaderInstrumentationMetricsARM;
--        return true;
--    }
++    if (nameHash == XXH3_vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM) {
+         *addr = (void *)EnumeratePhysicalDeviceShaderInstrumentationMetricsARM;
+         return true;
+     }
 -    if (!strcmp("vkCreateShaderInstrumentationARM", name)) {
--        *addr = (void *)CreateShaderInstrumentationARM;
--        return true;
--    }
++    if (nameHash == XXH3_vkCreateShaderInstrumentationARM) {
+         *addr = (void *)CreateShaderInstrumentationARM;
+         return true;
+     }
 -    if (!strcmp("vkDestroyShaderInstrumentationARM", name)) {
--        *addr = (void *)DestroyShaderInstrumentationARM;
--        return true;
--    }
++    if (nameHash == XXH3_vkDestroyShaderInstrumentationARM) {
+         *addr = (void *)DestroyShaderInstrumentationARM;
+         return true;
+     }
 -    if (!strcmp("vkCmdBeginShaderInstrumentationARM", name)) {
--        *addr = (void *)CmdBeginShaderInstrumentationARM;
--        return true;
--    }
++    if (nameHash == XXH3_vkCmdBeginShaderInstrumentationARM) {
+         *addr = (void *)CmdBeginShaderInstrumentationARM;
+         return true;
+     }
 -    if (!strcmp("vkCmdEndShaderInstrumentationARM", name)) {
--        *addr = (void *)CmdEndShaderInstrumentationARM;
--        return true;
--    }
++    if (nameHash == XXH3_vkCmdEndShaderInstrumentationARM) {
+         *addr = (void *)CmdEndShaderInstrumentationARM;
+         return true;
+     }
 -    if (!strcmp("vkGetShaderInstrumentationValuesARM", name)) {
--        *addr = (void *)GetShaderInstrumentationValuesARM;
--        return true;
--    }
++    if (nameHash == XXH3_vkGetShaderInstrumentationValuesARM) {
+         *addr = (void *)GetShaderInstrumentationValuesARM;
+         return true;
+     }
 -    if (!strcmp("vkClearShaderInstrumentationMetricsARM", name)) {
--        *addr = (void *)ClearShaderInstrumentationMetricsARM;
--        return true;
--    }
--
++    if (nameHash == XXH3_vkClearShaderInstrumentationMetricsARM) {
+         *addr = (void *)ClearShaderInstrumentationMetricsARM;
+         return true;
+     }
+ 
      // ---- VK_EXT_fragment_density_map_offset extension commands
 -    if (!strcmp("vkCmdEndRendering2EXT", name)) {
 +    if (nameHash == XXH3_vkCmdEndRendering2EXT) {
@@ -6799,24 +6734,25 @@ index 712916ff0..3d6b492ad 100644
          return true;
      }
  
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
+     // ---- VK_SEC_ubm_surface extension commands
+ #if defined(VK_USE_PLATFORM_UBM_SEC)
 -    if (!strcmp("vkCreateUbmSurfaceSEC", name)) {
--        *addr = (ptr_instance->enabled_extensions.sec_ubm_surface == 1)
--                     ? (void *)CreateUbmSurfaceSEC
--                     : NULL;
--        return true;
--    }
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
++    if (nameHash == XXH3_vkCreateUbmSurfaceSEC) {
+         *addr = (ptr_instance->enabled_extensions.sec_ubm_surface == 1)
+                      ? (void *)CreateUbmSurfaceSEC
+                      : NULL;
+@@ -14806,7 +14806,7 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+     }
+ #endif // VK_USE_PLATFORM_UBM_SEC
+ #if defined(VK_USE_PLATFORM_UBM_SEC)
 -    if (!strcmp("vkGetPhysicalDeviceUbmPresentationSupportSEC", name)) {
--        *addr = (ptr_instance->enabled_extensions.sec_ubm_surface == 1)
--                     ? (void *)GetPhysicalDeviceUbmPresentationSupportSEC
--                     : NULL;
--        return true;
--    }
--#endif // VK_USE_PLATFORM_UBM_SEC
--
++    if (nameHash == XXH3_vkGetPhysicalDeviceUbmPresentationSupportSEC) {
+         *addr = (ptr_instance->enabled_extensions.sec_ubm_surface == 1)
+                      ? (void *)GetPhysicalDeviceUbmPresentationSupportSEC
+                      : NULL;
+@@ -14815,107 +14815,107 @@ bool extension_instance_gpa(struct loader_instance *ptr_instance, const char *na
+ #endif // VK_USE_PLATFORM_UBM_SEC
+ 
      // ---- VK_KHR_acceleration_structure extension commands
 -    if (!strcmp("vkCreateAccelerationStructureKHR", name)) {
 +    if (nameHash == XXH3_vkCreateAccelerationStructureKHR) {
@@ -6947,18 +6883,7 @@ index 712916ff0..3d6b492ad 100644
          *addr = (void *)CmdDrawMeshTasksIndirectCountEXT;
          return true;
      }
-@@ -14581,95 +14300,89 @@ void fill_out_enabled_instance_extensions(uint32_t extension_count, const char *
- #if defined(VK_USE_PLATFORM_OHOS)
-         else if (0 == strcmp(extension_list[i], VK_OHOS_SURFACE_EXTENSION_NAME)) { enables->ohos_surface = 1; }
- #endif // VK_USE_PLATFORM_OHOS
--
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--        else if (0 == strcmp(extension_list[i], VK_SEC_UBM_SURFACE_EXTENSION_NAME)) { enables->sec_ubm_surface = 1; }
--#endif // VK_USE_PLATFORM_UBM_SEC
-     }
- }
- 
+@@ -15092,84 +15092,83 @@ void fill_out_enabled_instance_extensions(uint32_t extension_count, const char *
  // Some device commands still need a terminator because the loader needs to unwrap something about them.
  // In many cases, the item needing unwrapping is a VkPhysicalDevice or VkSurfaceKHR object.  But there may be other items
  // in the future.
@@ -7058,35 +6983,8 @@ index 712916ff0..3d6b492ad 100644
          *found_name = true;
          return dev->driver_extensions.ext_full_screen_exclusive_enabled ?
              (PFN_vkVoidFunction)terminator_GetDeviceGroupSurfacePresentModes2EXT : NULL;
-@@ -14954,17 +14667,6 @@ const VkLayerInstanceDispatchTable instance_disp = {
- 
-     // ---- VK_ARM_performance_counters_by_region extension commands
-     .EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM = terminator_EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM,
--
--    // ---- VK_ARM_shader_instrumentation extension commands
--    .EnumeratePhysicalDeviceShaderInstrumentationMetricsARM = terminator_EnumeratePhysicalDeviceShaderInstrumentationMetricsARM,
--
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    .CreateUbmSurfaceSEC = terminator_CreateUbmSurfaceSEC,
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    .GetPhysicalDeviceUbmPresentationSupportSEC = terminator_GetPhysicalDeviceUbmPresentationSupportSEC,
--#endif // VK_USE_PLATFORM_UBM_SEC
- };
- 
- // A null-terminated list of all of the instance extensions supported by the loader.
-@@ -15044,8 +14746,5 @@ const char *const LOADER_INSTANCE_EXTENSIONS[] = {
- #if defined(VK_USE_PLATFORM_OHOS)
-                                                   VK_OHOS_SURFACE_EXTENSION_NAME,
- #endif // VK_USE_PLATFORM_OHOS
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--                                                  VK_SEC_UBM_SURFACE_EXTENSION_NAME,
--#endif // VK_USE_PLATFORM_UBM_SEC
-                                                   NULL };
- // clang-format on
 diff --git a/loader/generated/vk_loader_extensions.h b/loader/generated/vk_loader_extensions.h
-index 4f7057f0f..68bbb4388 100644
+index 4f7057f0f..d24d0e50b 100644
 --- a/loader/generated/vk_loader_extensions.h
 +++ b/loader/generated/vk_loader_extensions.h
 @@ -45,7 +45,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkDevExtError(VkDevice dev);
@@ -7121,190 +7019,6 @@ index 4f7057f0f..68bbb4388 100644
                                                                    bool *found_name);
  
  // Loader core instance terminators
-@@ -503,17 +504,6 @@ struct loader_icd_term_dispatch {
- 
-     // ---- VK_ARM_performance_counters_by_region extension commands
-     PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM;
--
--    // ---- VK_ARM_shader_instrumentation extension commands
--    PFN_vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM EnumeratePhysicalDeviceShaderInstrumentationMetricsARM;
--
--    // ---- VK_SEC_ubm_surface extension commands
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    PFN_vkCreateUbmSurfaceSEC CreateUbmSurfaceSEC;
--#endif // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    PFN_vkGetPhysicalDeviceUbmPresentationSupportSEC GetPhysicalDeviceUbmPresentationSupportSEC;
--#endif // VK_USE_PLATFORM_UBM_SEC
- };
- 
- struct loader_instance_extension_enable_list {
-@@ -589,9 +579,6 @@ struct loader_instance_extension_enable_list {
- #if defined(VK_USE_PLATFORM_OHOS)
-     uint8_t ohos_surface;
- #endif // defined(VK_USE_PLATFORM_OHOS)
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    uint8_t sec_ubm_surface;
--#endif // defined(VK_USE_PLATFORM_UBM_SEC)
- };
- 
- // Functions that required a terminator need to have a separate dispatch table which contains their corresponding
-diff --git a/loader/generated/vk_object_types.h b/loader/generated/vk_object_types.h
-index 32db56b5f..099bc8394 100644
---- a/loader/generated/vk_object_types.h
-+++ b/loader/generated/vk_object_types.h
-@@ -39,16 +39,16 @@
- // Object Type enum for validation layer internal object handling
- typedef enum VulkanObjectType {
-     kVulkanObjectTypeUnknown = 0,
--    kVulkanObjectTypeInstance = 1,
--    kVulkanObjectTypePhysicalDevice = 2,
--    kVulkanObjectTypeDevice = 3,
--    kVulkanObjectTypeQueue = 4,
--    kVulkanObjectTypeSemaphore = 5,
--    kVulkanObjectTypeCommandBuffer = 6,
--    kVulkanObjectTypeFence = 7,
--    kVulkanObjectTypeDeviceMemory = 8,
--    kVulkanObjectTypeBuffer = 9,
--    kVulkanObjectTypeImage = 10,
-+    kVulkanObjectTypeBuffer = 1,
-+    kVulkanObjectTypeImage = 2,
-+    kVulkanObjectTypeInstance = 3,
-+    kVulkanObjectTypePhysicalDevice = 4,
-+    kVulkanObjectTypeDevice = 5,
-+    kVulkanObjectTypeQueue = 6,
-+    kVulkanObjectTypeSemaphore = 7,
-+    kVulkanObjectTypeCommandBuffer = 8,
-+    kVulkanObjectTypeFence = 9,
-+    kVulkanObjectTypeDeviceMemory = 10,
-     kVulkanObjectTypeQueryPool = 11,
-     kVulkanObjectTypeImageView = 12,
-     kVulkanObjectTypeCommandPool = 13,
-@@ -58,8 +58,8 @@ typedef enum VulkanObjectType {
-     kVulkanObjectTypeBufferView = 17,
-     kVulkanObjectTypeShaderModule = 18,
-     kVulkanObjectTypePipelineCache = 19,
--    kVulkanObjectTypePipeline = 20,
--    kVulkanObjectTypePipelineLayout = 21,
-+    kVulkanObjectTypePipelineLayout = 20,
-+    kVulkanObjectTypePipeline = 21,
-     kVulkanObjectTypeDescriptorSetLayout = 22,
-     kVulkanObjectTypeSampler = 23,
-     kVulkanObjectTypeDescriptorSet = 24,
-@@ -96,8 +96,7 @@ typedef enum VulkanObjectType {
-     kVulkanObjectTypeExternalComputeQueueNV = 55,
-     kVulkanObjectTypeIndirectExecutionSetEXT = 56,
-     kVulkanObjectTypeIndirectCommandsLayoutEXT = 57,
--    kVulkanObjectTypeShaderInstrumentationARM = 58,
--    kVulkanObjectTypeMax = 59,
-+    kVulkanObjectTypeMax = 58,
-     // Aliases for backwards compatibility of "promoted" types
-     kVulkanObjectTypeDescriptorUpdateTemplateKHR = kVulkanObjectTypeDescriptorUpdateTemplate,
-     kVulkanObjectTypeSamplerYcbcrConversionKHR = kVulkanObjectTypeSamplerYcbcrConversion,
-@@ -107,6 +106,8 @@ typedef enum VulkanObjectType {
- // Array of object name strings for OBJECT_TYPE enum conversion
- static const char * const object_string[kVulkanObjectTypeMax] = {
-     "Unknown",
-+    "Buffer",
-+    "Image",
-     "Instance",
-     "PhysicalDevice",
-     "Device",
-@@ -115,8 +116,6 @@ static const char * const object_string[kVulkanObjectTypeMax] = {
-     "CommandBuffer",
-     "Fence",
-     "DeviceMemory",
--    "Buffer",
--    "Image",
-     "QueryPool",
-     "ImageView",
-     "CommandPool",
-@@ -126,8 +125,8 @@ static const char * const object_string[kVulkanObjectTypeMax] = {
-     "BufferView",
-     "ShaderModule",
-     "PipelineCache",
--    "Pipeline",
-     "PipelineLayout",
-+    "Pipeline",
-     "DescriptorSetLayout",
-     "Sampler",
-     "DescriptorSet",
-@@ -164,12 +163,13 @@ static const char * const object_string[kVulkanObjectTypeMax] = {
-     "ExternalComputeQueueNV",
-     "IndirectExecutionSetEXT",
-     "IndirectCommandsLayoutEXT",
--    "ShaderInstrumentationARM",
- };
- 
- // Helper array to get Vulkan VK_EXT_debug_report object type enum from the internal layers version
- const VkDebugReportObjectTypeEXT get_debug_report_enum[] = {
-     VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT, // kVulkanObjectTypeUnknown
-+    VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT,   // kVulkanObjectTypeBuffer
-+    VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT,   // kVulkanObjectTypeImage
-     VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT,   // kVulkanObjectTypeInstance
-     VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT,   // kVulkanObjectTypePhysicalDevice
-     VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT,   // kVulkanObjectTypeDevice
-@@ -178,8 +178,6 @@ const VkDebugReportObjectTypeEXT get_debug_report_enum[] = {
-     VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT,   // kVulkanObjectTypeCommandBuffer
-     VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT,   // kVulkanObjectTypeFence
-     VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT,   // kVulkanObjectTypeDeviceMemory
--    VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT,   // kVulkanObjectTypeBuffer
--    VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT,   // kVulkanObjectTypeImage
-     VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT,   // kVulkanObjectTypeQueryPool
-     VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT,   // kVulkanObjectTypeImageView
-     VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT,   // kVulkanObjectTypeCommandPool
-@@ -189,8 +187,8 @@ const VkDebugReportObjectTypeEXT get_debug_report_enum[] = {
-     VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT,   // kVulkanObjectTypeBufferView
-     VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT,   // kVulkanObjectTypeShaderModule
-     VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT,   // kVulkanObjectTypePipelineCache
--    VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT,   // kVulkanObjectTypePipeline
-     VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT,   // kVulkanObjectTypePipelineLayout
-+    VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT,   // kVulkanObjectTypePipeline
-     VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT,   // kVulkanObjectTypeDescriptorSetLayout
-     VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT,   // kVulkanObjectTypeSampler
-     VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT,   // kVulkanObjectTypeDescriptorSet
-@@ -227,12 +225,13 @@ const VkDebugReportObjectTypeEXT get_debug_report_enum[] = {
-     VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT,   // kVulkanObjectTypeExternalComputeQueueNV
-     VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT,   // kVulkanObjectTypeIndirectExecutionSetEXT
-     VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT,   // kVulkanObjectTypeIndirectCommandsLayoutEXT
--    VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT,   // kVulkanObjectTypeShaderInstrumentationARM
- };
- 
- // Helper array to get Official Vulkan VkObjectType enum from the internal layers version
- const VkObjectType get_object_type_enum[] = {
-     VK_OBJECT_TYPE_UNKNOWN, // kVulkanObjectTypeUnknown
-+    VK_OBJECT_TYPE_BUFFER,   // kVulkanObjectTypeBuffer
-+    VK_OBJECT_TYPE_IMAGE,   // kVulkanObjectTypeImage
-     VK_OBJECT_TYPE_INSTANCE,   // kVulkanObjectTypeInstance
-     VK_OBJECT_TYPE_PHYSICAL_DEVICE,   // kVulkanObjectTypePhysicalDevice
-     VK_OBJECT_TYPE_DEVICE,   // kVulkanObjectTypeDevice
-@@ -241,8 +240,6 @@ const VkObjectType get_object_type_enum[] = {
-     VK_OBJECT_TYPE_COMMAND_BUFFER,   // kVulkanObjectTypeCommandBuffer
-     VK_OBJECT_TYPE_FENCE,   // kVulkanObjectTypeFence
-     VK_OBJECT_TYPE_DEVICE_MEMORY,   // kVulkanObjectTypeDeviceMemory
--    VK_OBJECT_TYPE_BUFFER,   // kVulkanObjectTypeBuffer
--    VK_OBJECT_TYPE_IMAGE,   // kVulkanObjectTypeImage
-     VK_OBJECT_TYPE_QUERY_POOL,   // kVulkanObjectTypeQueryPool
-     VK_OBJECT_TYPE_IMAGE_VIEW,   // kVulkanObjectTypeImageView
-     VK_OBJECT_TYPE_COMMAND_POOL,   // kVulkanObjectTypeCommandPool
-@@ -252,8 +249,8 @@ const VkObjectType get_object_type_enum[] = {
-     VK_OBJECT_TYPE_BUFFER_VIEW,   // kVulkanObjectTypeBufferView
-     VK_OBJECT_TYPE_SHADER_MODULE,   // kVulkanObjectTypeShaderModule
-     VK_OBJECT_TYPE_PIPELINE_CACHE,   // kVulkanObjectTypePipelineCache
--    VK_OBJECT_TYPE_PIPELINE,   // kVulkanObjectTypePipeline
-     VK_OBJECT_TYPE_PIPELINE_LAYOUT,   // kVulkanObjectTypePipelineLayout
-+    VK_OBJECT_TYPE_PIPELINE,   // kVulkanObjectTypePipeline
-     VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,   // kVulkanObjectTypeDescriptorSetLayout
-     VK_OBJECT_TYPE_SAMPLER,   // kVulkanObjectTypeSampler
-     VK_OBJECT_TYPE_DESCRIPTOR_SET,   // kVulkanObjectTypeDescriptorSet
-@@ -290,7 +287,6 @@ const VkObjectType get_object_type_enum[] = {
-     VK_OBJECT_TYPE_EXTERNAL_COMPUTE_QUEUE_NV,   // kVulkanObjectTypeExternalComputeQueueNV
-     VK_OBJECT_TYPE_INDIRECT_EXECUTION_SET_EXT,   // kVulkanObjectTypeIndirectExecutionSetEXT
-     VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_EXT,   // kVulkanObjectTypeIndirectCommandsLayoutEXT
--    VK_OBJECT_TYPE_SHADER_INSTRUMENTATION_ARM,   // kVulkanObjectTypeShaderInstrumentationARM
- };
- 
- // Helper function to convert from VkDebugReportObjectTypeEXT to VkObjectType
 diff --git a/loader/gpa_helper.c b/loader/gpa_helper.c
 index 09e7ede63..a2ab4b8b6 100644
 --- a/loader/gpa_helper.c
@@ -7831,10 +7545,10 @@ index 09e7ede63..a2ab4b8b6 100644
      return NULL;
  }
 diff --git a/loader/loader.c b/loader/loader.c
-index fcae9265a..8ddf5292a 100644
+index 8c3058a0e..e8a799b61 100644
 --- a/loader/loader.c
 +++ b/loader/loader.c
-@@ -4492,8 +4492,10 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpdpa_instance_terminator(VkInst
+@@ -4491,8 +4491,10 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpdpa_instance_terminator(VkInst
          disp_table = &loader_inst->terminator_dispatch;
      }
  
@@ -7846,7 +7560,7 @@ index fcae9265a..8ddf5292a 100644
      if (found_name) {
          return addr;
      }
-@@ -4508,25 +4510,27 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpdpa_instance_terminator(VkInst
+@@ -4507,25 +4509,27 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpdpa_instance_terminator(VkInst
  }
  
  VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstance inst, const char *pName) {
@@ -7880,7 +7594,7 @@ index fcae9265a..8ddf5292a 100644
          return (PFN_vkVoidFunction)terminator_EnumerateInstanceVersion;
      }
  
-@@ -4535,7 +4539,7 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
+@@ -4534,7 +4538,7 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
  
      // As such, this is a bug to maintain compatibility for the RTSS layer (Riva Tuner Statistics Server) but may
      // be depended upon by other layers out in the wild.
@@ -7889,7 +7603,7 @@ index fcae9265a..8ddf5292a 100644
          return (PFN_vkVoidFunction)terminator_CreateDevice;
      }
  
-@@ -4554,29 +4558,29 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
+@@ -4553,29 +4557,29 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
      // is 'supported' by the loader.
      // These functions need a terminator to handle the case of a driver not supporting VK_EXT_debug_utils when there are layers
      // present which not check for NULL before calling the function.
@@ -7927,7 +7641,7 @@ index fcae9265a..8ddf5292a 100644
          return loader_inst->enabled_extensions.ext_debug_utils ? (PFN_vkVoidFunction)terminator_CmdInsertDebugUtilsLabelEXT : NULL;
      }
  
-@@ -4585,7 +4589,7 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
+@@ -4584,7 +4588,7 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
      }
  
      bool found_name;
@@ -7936,7 +7650,7 @@ index fcae9265a..8ddf5292a 100644
      if (found_name) {
          return addr;
      }
-@@ -4610,10 +4614,11 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
+@@ -4609,10 +4613,11 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_instance_terminator(VkInstan
  VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_device_terminator(VkDevice device, const char *pName) {
      struct loader_device *dev;
      struct loader_icd_term *icd_term = loader_get_icd_and_device(device, &dev);
@@ -7949,7 +7663,7 @@ index fcae9265a..8ddf5292a 100644
          return (PFN_vkVoidFunction)loader_gpa_device_terminator;
      }
  
-@@ -4630,7 +4635,7 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_device_terminator(VkDevice d
+@@ -4629,7 +4634,7 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL loader_gpa_device_terminator(VkDevice d
      // return NULL and not call down to the driver's GetDeviceProcAddr.
      if (NULL != dev) {
          bool found_name = false;
@@ -8371,10 +8085,10 @@ index c259f3b17..cbab9897d 100644
  
 diff --git a/loader/xxhash.h b/loader/xxhash.h
 new file mode 100644
-index 000000000..8bcc51d63
+index 000000000..78fc2e8db
 --- /dev/null
 +++ b/loader/xxhash.h
-@@ -0,0 +1,7246 @@
+@@ -0,0 +1,7238 @@
 +/*
 + * xxHash - Extremely Fast Hash algorithm
 + * Header File
@@ -10730,7 +10444,6 @@ index 000000000..8bcc51d63
 +/* *************************************
 +*  Includes & Memory related functions
 +***************************************/
-+#if !defined(XXH_CUSTOM_MALLOC)
 +#if defined(XXH_NO_STREAM)
 +/* nothing */
 +#elif defined(XXH_NO_STDLIB)
@@ -10768,7 +10481,6 @@ index 000000000..8bcc51d63
 +static void XXH_free(void* p) { free(p); }
 +
 +#endif  /* XXH_NO_STDLIB */
-+#endif  /* !XXH_CUSTOM_MALLOC */
 +
 +#include <string.h>
 +
@@ -11184,9 +10896,9 @@ index 000000000..8bcc51d63
 + * @param x The 32-bit integer to byteswap.
 + * @return @p x, byteswapped.
 + */
-+#if defined(_MSC_VER) && !defined(__clang__)   /* Visual Studio */
++#if defined(_MSC_VER)     /* Visual Studio */
 +#  define XXH_swap32 _byteswap_ulong
-+#elif XXH_GCC_VERSION >= 403 || XXH_HAS_BUILTIN(__builtin_bswap32)
++#elif XXH_GCC_VERSION >= 403
 +#  define XXH_swap32 __builtin_bswap32
 +#else
 +static xxh_u32 XXH_swap32 (xxh_u32 x)
@@ -11750,9 +11462,9 @@ index 000000000..8bcc51d63
 +
 +#endif   /* XXH_FORCE_DIRECT_MEMORY_ACCESS */
 +
-+#if defined(_MSC_VER) && !defined(__clang__)     /* Visual Studio */
++#if defined(_MSC_VER)     /* Visual Studio */
 +#  define XXH_swap64 _byteswap_uint64
-+#elif XXH_GCC_VERSION >= 403 || XXH_HAS_BUILTIN(__builtin_bswap64)
++#elif XXH_GCC_VERSION >= 403
 +#  define XXH_swap64 __builtin_bswap64
 +#else
 +static xxh_u64 XXH_swap64(xxh_u64 x)
@@ -14298,7 +14010,6 @@ index 000000000..8bcc51d63
 +
 +
 +typedef void (*XXH3_f_accumulate)(xxh_u64* XXH_RESTRICT, const xxh_u8* XXH_RESTRICT, const xxh_u8* XXH_RESTRICT, size_t);
-+typedef void (*XXH3_f_accumulate_512)(void *XXH_RESTRICT acc, const void *XXH_RESTRICT input, const void *XXH_RESTRICT secret);
 +typedef void (*XXH3_f_scrambleAcc)(void* XXH_RESTRICT, const void*);
 +typedef void (*XXH3_f_initCustomSecret)(void* XXH_RESTRICT, xxh_u64);
 +
@@ -14369,7 +14080,6 @@ index 000000000..8bcc51d63
 +                      const xxh_u8* XXH_RESTRICT input, size_t len,
 +                      const xxh_u8* XXH_RESTRICT secret, size_t secretSize,
 +                            XXH3_f_accumulate f_acc,
-+                            XXH3_f_accumulate_512 f_acc512,
 +                            XXH3_f_scrambleAcc f_scramble)
 +{
 +    size_t const nbStripesPerBlock = (secretSize - XXH_STRIPE_LEN) / XXH_SECRET_CONSUME_RATE;
@@ -14394,7 +14104,7 @@ index 000000000..8bcc51d63
 +        /* last stripe */
 +        {   const xxh_u8* const p = input + len - XXH_STRIPE_LEN;
 +#define XXH_SECRET_LASTACC_START 7  /* not aligned on 8, last secret is different from acc & scrambler */
-+            f_acc512(acc, p, secret + secretSize - XXH_STRIPE_LEN - XXH_SECRET_LASTACC_START);
++            XXH3_accumulate_512(acc, p, secret + secretSize - XXH_STRIPE_LEN - XXH_SECRET_LASTACC_START);
 +    }   }
 +}
 +
@@ -14449,12 +14159,11 @@ index 000000000..8bcc51d63
 +XXH3_hashLong_64b_internal(const void* XXH_RESTRICT input, size_t len,
 +                           const void* XXH_RESTRICT secret, size_t secretSize,
 +                           XXH3_f_accumulate f_acc,
-+                           XXH3_f_accumulate_512 f_acc512,
 +                           XXH3_f_scrambleAcc f_scramble)
 +{
 +    XXH_ALIGN(XXH_ACC_ALIGN) xxh_u64 acc[XXH_ACC_NB] = XXH3_INIT_ACC;
 +
-+    XXH3_hashLong_internal_loop(acc, (const xxh_u8*)input, len, (const xxh_u8*)secret, secretSize, f_acc, f_acc512, f_scramble);
++    XXH3_hashLong_internal_loop(acc, (const xxh_u8*)input, len, (const xxh_u8*)secret, secretSize, f_acc, f_scramble);
 +
 +    /* converge into final hash */
 +    XXH_STATIC_ASSERT(sizeof(acc) == 64);
@@ -14474,7 +14183,7 @@ index 000000000..8bcc51d63
 +                             XXH64_hash_t seed64, const xxh_u8* XXH_RESTRICT secret, size_t secretLen)
 +{
 +    (void)seed64;
-+    return XXH3_hashLong_64b_internal(input, len, secret, secretLen, XXH3_accumulate, XXH3_accumulate_512, XXH3_scrambleAcc);
++    return XXH3_hashLong_64b_internal(input, len, secret, secretLen, XXH3_accumulate, XXH3_scrambleAcc);
 +}
 +
 +/*
@@ -14488,7 +14197,7 @@ index 000000000..8bcc51d63
 +                          XXH64_hash_t seed64, const xxh_u8* XXH_RESTRICT secret, size_t secretLen)
 +{
 +    (void)seed64; (void)secret; (void)secretLen;
-+    return XXH3_hashLong_64b_internal(input, len, XXH3_kSecret, sizeof(XXH3_kSecret), XXH3_accumulate, XXH3_accumulate_512, XXH3_scrambleAcc);
++    return XXH3_hashLong_64b_internal(input, len, XXH3_kSecret, sizeof(XXH3_kSecret), XXH3_accumulate, XXH3_scrambleAcc);
 +}
 +
 +/*
@@ -14506,7 +14215,6 @@ index 000000000..8bcc51d63
 +XXH3_hashLong_64b_withSeed_internal(const void* input, size_t len,
 +                                    XXH64_hash_t seed,
 +                                    XXH3_f_accumulate f_acc,
-+                                    XXH3_f_accumulate_512 f_acc512,
 +                                    XXH3_f_scrambleAcc f_scramble,
 +                                    XXH3_f_initCustomSecret f_initSec)
 +{
@@ -14514,12 +14222,12 @@ index 000000000..8bcc51d63
 +    if (seed == 0)
 +        return XXH3_hashLong_64b_internal(input, len,
 +                                          XXH3_kSecret, sizeof(XXH3_kSecret),
-+                                          f_acc, f_acc512, f_scramble);
++                                          f_acc, f_scramble);
 +#endif
 +    {   XXH_ALIGN(XXH_SEC_ALIGN) xxh_u8 secret[XXH_SECRET_DEFAULT_SIZE];
 +        f_initSec(secret, seed);
 +        return XXH3_hashLong_64b_internal(input, len, secret, sizeof(secret),
-+                                          f_acc, f_acc512, f_scramble);
++                                          f_acc, f_scramble);
 +    }
 +}
 +
@@ -14532,7 +14240,7 @@ index 000000000..8bcc51d63
 +{
 +    (void)secret; (void)secretLen;
 +    return XXH3_hashLong_64b_withSeed_internal(input, len, seed,
-+                XXH3_accumulate, XXH3_accumulate_512, XXH3_scrambleAcc, XXH3_initCustomSecret);
++                XXH3_accumulate, XXH3_scrambleAcc, XXH3_initCustomSecret);
 +}
 +
 +
@@ -15275,12 +14983,11 @@ index 000000000..8bcc51d63
 +XXH3_hashLong_128b_internal(const void* XXH_RESTRICT input, size_t len,
 +                            const xxh_u8* XXH_RESTRICT secret, size_t secretSize,
 +                            XXH3_f_accumulate f_acc,
-+                            XXH3_f_accumulate_512 f_acc512,
 +                            XXH3_f_scrambleAcc f_scramble)
 +{
 +    XXH_ALIGN(XXH_ACC_ALIGN) xxh_u64 acc[XXH_ACC_NB] = XXH3_INIT_ACC;
 +
-+    XXH3_hashLong_internal_loop(acc, (const xxh_u8*)input, len, secret, secretSize, f_acc, f_acc512, f_scramble);
++    XXH3_hashLong_internal_loop(acc, (const xxh_u8*)input, len, secret, secretSize, f_acc, f_scramble);
 +
 +    /* converge into final hash */
 +    XXH_STATIC_ASSERT(sizeof(acc) == 64);
@@ -15298,7 +15005,7 @@ index 000000000..8bcc51d63
 +{
 +    (void)seed64; (void)secret; (void)secretLen;
 +    return XXH3_hashLong_128b_internal(input, len, XXH3_kSecret, sizeof(XXH3_kSecret),
-+                                       XXH3_accumulate, XXH3_accumulate_512, XXH3_scrambleAcc);
++                                       XXH3_accumulate, XXH3_scrambleAcc);
 +}
 +
 +/*
@@ -15315,25 +15022,24 @@ index 000000000..8bcc51d63
 +{
 +    (void)seed64;
 +    return XXH3_hashLong_128b_internal(input, len, (const xxh_u8*)secret, secretLen,
-+                                       XXH3_accumulate, XXH3_accumulate_512, XXH3_scrambleAcc);
++                                       XXH3_accumulate, XXH3_scrambleAcc);
 +}
 +
 +XXH_FORCE_INLINE XXH128_hash_t
 +XXH3_hashLong_128b_withSeed_internal(const void* XXH_RESTRICT input, size_t len,
 +                                XXH64_hash_t seed64,
 +                                XXH3_f_accumulate f_acc,
-+                                XXH3_f_accumulate_512 f_acc512,
 +                                XXH3_f_scrambleAcc f_scramble,
 +                                XXH3_f_initCustomSecret f_initSec)
 +{
 +    if (seed64 == 0)
 +        return XXH3_hashLong_128b_internal(input, len,
 +                                           XXH3_kSecret, sizeof(XXH3_kSecret),
-+                                           f_acc, f_acc512, f_scramble);
++                                           f_acc, f_scramble);
 +    {   XXH_ALIGN(XXH_SEC_ALIGN) xxh_u8 secret[XXH_SECRET_DEFAULT_SIZE];
 +        f_initSec(secret, seed64);
 +        return XXH3_hashLong_128b_internal(input, len, (const xxh_u8*)secret, sizeof(secret),
-+                                           f_acc, f_acc512, f_scramble);
++                                           f_acc, f_scramble);
 +    }
 +}
 +
@@ -15346,7 +15052,7 @@ index 000000000..8bcc51d63
 +{
 +    (void)secret; (void)secretLen;
 +    return XXH3_hashLong_128b_withSeed_internal(input, len, seed64,
-+                XXH3_accumulate, XXH3_accumulate_512, XXH3_scrambleAcc, XXH3_initCustomSecret);
++                XXH3_accumulate, XXH3_scrambleAcc, XXH3_initCustomSecret);
 +}
 +
 +typedef XXH128_hash_t (*XXH3_hashLong128_f)(const void* XXH_RESTRICT, size_t,
@@ -15878,36 +15584,6 @@ index 6523795c8..a48c86ece 100644
                  out.append('        *found_name = true;\n')
                  enable_extension_expressions = []
                  for ext in command.extensions:
-diff --git a/tests/framework/layer/generated/vk_dispatch_table_helper.h b/tests/framework/layer/generated/vk_dispatch_table_helper.h
-index b6bcc4ef6..aaf328485 100644
---- a/tests/framework/layer/generated/vk_dispatch_table_helper.h
-+++ b/tests/framework/layer/generated/vk_dispatch_table_helper.h
-@@ -755,12 +755,6 @@ static inline void layer_init_device_dispatch_table(VkDevice device, VkLayerDisp
- #if defined(VK_USE_PLATFORM_METAL_EXT)
-     table->GetMemoryMetalHandlePropertiesEXT = (PFN_vkGetMemoryMetalHandlePropertiesEXT)gpa(device, "vkGetMemoryMetalHandlePropertiesEXT");
- #endif  // VK_USE_PLATFORM_METAL_EXT
--    table->CreateShaderInstrumentationARM = (PFN_vkCreateShaderInstrumentationARM)gpa(device, "vkCreateShaderInstrumentationARM");
--    table->DestroyShaderInstrumentationARM = (PFN_vkDestroyShaderInstrumentationARM)gpa(device, "vkDestroyShaderInstrumentationARM");
--    table->CmdBeginShaderInstrumentationARM = (PFN_vkCmdBeginShaderInstrumentationARM)gpa(device, "vkCmdBeginShaderInstrumentationARM");
--    table->CmdEndShaderInstrumentationARM = (PFN_vkCmdEndShaderInstrumentationARM)gpa(device, "vkCmdEndShaderInstrumentationARM");
--    table->GetShaderInstrumentationValuesARM = (PFN_vkGetShaderInstrumentationValuesARM)gpa(device, "vkGetShaderInstrumentationValuesARM");
--    table->ClearShaderInstrumentationMetricsARM = (PFN_vkClearShaderInstrumentationMetricsARM)gpa(device, "vkClearShaderInstrumentationMetricsARM");
-     table->CmdEndRendering2EXT = (PFN_vkCmdEndRendering2EXT)gpa(device, "vkCmdEndRendering2EXT");
-     table->CmdBeginCustomResolveEXT = (PFN_vkCmdBeginCustomResolveEXT)gpa(device, "vkCmdBeginCustomResolveEXT");
-     table->CmdSetComputeOccupancyPriorityNV = (PFN_vkCmdSetComputeOccupancyPriorityNV)gpa(device, "vkCmdSetComputeOccupancyPriorityNV");
-@@ -964,12 +958,5 @@ static inline void layer_init_instance_dispatch_table(VkInstance instance, VkLay
- #endif  // VK_USE_PLATFORM_OHOS
-     table->GetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV = (PFN_vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV)gpa(instance, "vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV");
-     table->EnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM = (PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM)gpa(instance, "vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM");
--    table->EnumeratePhysicalDeviceShaderInstrumentationMetricsARM = (PFN_vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM)gpa(instance, "vkEnumeratePhysicalDeviceShaderInstrumentationMetricsARM");
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    table->CreateUbmSurfaceSEC = (PFN_vkCreateUbmSurfaceSEC)gpa(instance, "vkCreateUbmSurfaceSEC");
--#endif  // VK_USE_PLATFORM_UBM_SEC
--#if defined(VK_USE_PLATFORM_UBM_SEC)
--    table->GetPhysicalDeviceUbmPresentationSupportSEC = (PFN_vkGetPhysicalDeviceUbmPresentationSupportSEC)gpa(instance, "vkGetPhysicalDeviceUbmPresentationSupportSEC");
--#endif  // VK_USE_PLATFORM_UBM_SEC
-     // clang-format on
- }
 -- 
 2.53.0
 

@@ -25,6 +25,7 @@ You'll want the following tools installed to build:
 * virtualenv (for GLAD)
 * util-linux (for formatting the `make run` outputs)
 * sed (for formatting the `make run` outputs)
+* a Rust toolchain (for Gloam)
 * Clang or GCC (you can specify a compiler with `make CC=gcc CXX=g++`)
 
 And of course you'll need a system-wide installation of libvulkan and
@@ -38,66 +39,77 @@ Linux
 -----
 | Project        | Version (git describe)      |
 |----------------|-----------------------------|
-| GLAD (dav1dde) | `2.0.8-1-gf492295` |
-| GLAD (tycho)   | `2.0.8-68-g213a330`   |
-| Volk           | `1.4.321.0-23-g1e0ec16`         |
-| xxHash         | `0.7.4-976-gc961fbe`       |
-| Vulkan-Headers | `1.4.327`   |
+| GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
+| GLAD (tycho)   | `2.0.8-91-g8092eae`   |
+| gloam          | `0.1.5-1-g3be2e6f`        |
+| Volk           | `1.4.341.0-21-g78463da`         |
+| xxHash         | `0.8.3`       |
+| Vulkan-Headers | `1.4.347-1-gf07ffc2`   |
 
 | Tool         | Name             | Version             |
 |--------------|------------------|---------------------|
-| Kernel       | `Linux`   | `6.16.5-zen-1-zen-ge8be1c8993bf`      |
+| Kernel       | `Linux`   | `6.19.8-1-hsw`      |
 | Architecture | `x86_64`   | `AMD Ryzen 9 3950X 16-Core Processor`    |
-| CC           | `clang`        | `20.1.8`   |
-| CXX          | `clang++`       | `20.1.8`  |
+| CC           | `clang`        | `22.1.1`   |
+| CXX          | `clang++`       | `22.1.1`  |
 
 | Variable     | Value         |
 |--------------|---------------|
-| `OPTFLAGS` | `-O2 -march=x86-64-v2 -mtune=znver3 -g0` |
+| `OPTFLAGS` | `-O2 -fno-unroll-loops -march=x86-64-v2 -mtune=znver3 -g0` |
 | `CFLAGS`   | `-std=c17` |
 | `CXXFLAGS` | `-std=c++20` |
 
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 871486          | 4357.43            |
-| Load device functions   | 200 | 1348372          | 6741.86            |
-| Teardown and full init  | 20 | 303631          | 15181.5            |
+| Load instance functions | 200 | 761621          | 3808.11            |
+| Load device functions   | 200 | 1209947          | 6049.73            |
+| Teardown and full init  | 20 | 270205          | 13510.2            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 12883          | 64.415            |
-| Load device functions   | 200 | 144481          | 722.405            |
-| Teardown and full init  | 20 | 182237          | 9111.85            |
+| Load instance functions | 200 | 12565          | 62.825            |
+| Load device functions   | 200 | 141251          | 706.255            |
+| Teardown and full init  | 20 | 158354          | 7917.7            |
+
+[Gloam](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 14070          | 70.35            |
+| Load device functions   | 200 | 147855          | 739.275            |
+| Teardown and full init  | 20 | 159596          | 7979.8            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 15797          | 78.985            |
-| Load device functions   | 200 | 128289          | 641.445            |
-| Teardown and full init  | 20 | 14507          | 725.35            |
+| Load instance functions | 200 | 17170          | 85.85            |
+| Load device functions   | 200 | 150557          | 752.785            |
+| Teardown and full init  | 20 | 16900          | 845            |
 
 Loader object sizes in bytes:
 ```
-349968  obj/loader-glad-dav1dde.o
- 66024  obj/loader-glad-tycho.o
-283040  obj/loader-volk.o
+316288  obj/loader-glad-dav1dde.o
+ 67192  obj/loader-glad-tycho.o
+ 67664  obj/loader-gloam.o
+312912  obj/loader-volk.o
 ```
 
 Test program sizes in bytes:
 ```
-121184  bin/test-glad-dav1dde
- 76200  bin/test-glad-tycho
- 92472  bin/test-volk
+104800  bin/test-glad-dav1dde
+ 80288  bin/test-glad-tycho
+ 76176  bin/test-gloam
+ 96568  bin/test-volk
 ```
 
 Section sizes:
 ```
-  text  data  bss   dec     hex    filename
-111112  832   7160  119104  1d140  bin/test-glad-dav1dde
- 60879  6904  6552  74335   1225f  bin/test-glad-tycho
- 81842  792   5608  88242   158b2  bin/test-volk
+ text  data  bss   dec     hex    filename
+99060  832   6568  106460  19fdc  bin/test-glad-dav1dde
+62043  7360  7040  76443   12a9b  bin/test-glad-tycho
+62622  7344  7032  76998   12cc6  bin/test-gloam
+88967  792   6040  95799   17637  bin/test-volk
 ```
 
 vulkaninfo
@@ -105,85 +117,95 @@ vulkaninfo
 Devices:
 ========
 GPU0:
-        apiVersion         = 1.4.312
-        driverVersion      = 580.82.9.0
+        apiVersion         = 1.4.325
+        driverVersion      = 590.48.1.0
         vendorID           = 0x10de
         deviceID           = 0x2204
         deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
         deviceName         = NVIDIA GeForce RTX 3090
         driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
         driverName         = NVIDIA
-        driverInfo         = 580.82.09
-        conformanceVersion = 1.4.1.3
+        driverInfo         = 590.48.01
+        conformanceVersion = 1.4.3.0
         deviceUUID         = 8389ef2b-954d-4c2e-1e19-49bc92e5c34f
-        driverUUID         = c642c5f0-0715-5db7-85d2-8c160b823f7d
+        driverUUID         = cacc304f-7167-5cf5-a6bd-293f0657ef84
 ```
-
 
 MinGW
 -----
 | Project        | Version (git describe)      |
 |----------------|-----------------------------|
-| GLAD (dav1dde) | `2.0.8-1-gf492295` |
-| GLAD (tycho)   | `2.0.8-68-g213a330`   |
-| Volk           | `1.4.321.0-23-g1e0ec16`         |
-| xxHash         | `0.7.4-976-gc961fbe`       |
-| Vulkan-Headers | `1.4.327`   |
+| GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
+| GLAD (tycho)   | `2.0.8-91-g8092eae`   |
+| gloam          | `0.1.5-1-g3be2e6f`        |
+| Volk           | `1.4.341.0-21-g78463da`         |
+| xxHash         | `0.8.3`       |
+| Vulkan-Headers | `1.4.347-1-gf07ffc2`   |
 
 | Tool         | Name             | Version             |
 |--------------|------------------|---------------------|
-| Kernel       | `MINGW64_NT-10.0-26100`   | `3.6.4-23a25d49.x86_64`      |
+| Kernel       | `MINGW64_NT-10.0-26200`   | `3.6.7-6e9c4de9.x86_64`      |
 | Architecture | `x86_64`   | `AMD Ryzen 9 9950X 16-Core Processor`    |
-| CC           | `clang`        | `21.1.1`   |
-| CXX          | `clang++`       | `21.1.1`  |
+| CC           | `clang`        | `21.1.8`   |
+| CXX          | `clang++`       | `21.1.8`  |
 
 | Variable     | Value         |
 |--------------|---------------|
-| `OPTFLAGS` | `-O2 -march=x86-64-v2 -mtune=znver3 -fno-unroll-loops -g0` |
+| `OPTFLAGS` | `-O2 -fno-unroll-loops -march=x86-64-v2 -mtune=znver3 -g0` |
 | `CFLAGS`   | `-std=c17` |
 | `CXXFLAGS` | `-std=c++20` |
 
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 374355          | 1871.78            |
-| Load device functions   | 200 | 841692          | 4208.46            |
-| Teardown and full init  | 20 | 156983          | 7849.15            |
+| Load instance functions | 200 | 609064          | 3045.32            |
+| Load device functions   | 200 | 1102829          | 5514.15            |
+| Teardown and full init  | 20 | 226066          | 11303.3            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 9562          | 47.81            |
-| Load device functions   | 200 | 94848          | 474.24            |
-| Teardown and full init  | 20 | 69349          | 3467.45            |
+| Load instance functions | 200 | 9452          | 47.26            |
+| Load device functions   | 200 | 118856          | 594.28            |
+| Teardown and full init  | 20 | 122058          | 6102.9            |
+
+[Gloam](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 9505          | 47.525            |
+| Load device functions   | 200 | 108450          | 542.25            |
+| Teardown and full init  | 20 | 109506          | 5475.3            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 12055          | 60.275            |
-| Load device functions   | 200 | 81649          | 408.245            |
-| Teardown and full init  | 20 | 10719          | 535.95            |
+| Load instance functions | 200 | 12834          | 64.17            |
+| Load device functions   | 200 | 98764          | 493.82            |
+| Teardown and full init  | 20 | 12541          | 627.05            |
 
 Loader object sizes in bytes:
 ```
-213520  obj/loader-glad-dav1dde.o
- 49443  obj/loader-glad-tycho.o
-200853  obj/loader-volk.o
+192545  obj/loader-glad-dav1dde.o
+ 52988  obj/loader-glad-tycho.o
+ 53567  obj/loader-gloam.o
+221552  obj/loader-volk.o
 ```
 
 Test program sizes in bytes:
 ```
-122880  bin/test-glad-dav1dde.exe
- 60416  bin/test-glad-tycho.exe
- 93696  bin/test-volk.exe
+112128  bin/test-glad-dav1dde.exe
+ 64000  bin/test-glad-tycho.exe
+ 64000  bin/test-gloam.exe
+101888  bin/test-volk.exe
 ```
 
 Section sizes:
 ```
  text  data   bss  dec     hex    filename
-77510  42585  0    120095  1d51f  bin/test-glad-dav1dde.exe
-14198  43357  0    57555   e0d3   bin/test-glad-tycho.exe
-63254  27413  0    90667   1622b  bin/test-volk.exe
+70630  39320  0    109950  1ad7e  bin/test-glad-dav1dde.exe
+14870  46172  0    61042   ee72   bin/test-glad-tycho.exe
+14598  47244  0    61842   f192   bin/test-gloam.exe
+70310  29244  0    99554   184e2  bin/test-volk.exe
 ```
 
 vulkaninfo
@@ -191,84 +213,94 @@ vulkaninfo
 Devices:
 ========
 GPU0:
-        apiVersion         = 1.4.312
-        driverVersion      = 581.29.0.0
+        apiVersion         = 1.4.329
+        driverVersion      = 595.71.0.0
         vendorID           = 0x10de
         deviceID           = 0x2b85
         deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
         deviceName         = NVIDIA GeForce RTX 5090
         driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
         driverName         = NVIDIA
-        driverInfo         = 581.29
-        conformanceVersion = 1.4.1.3
+        driverInfo         = 595.71
+        conformanceVersion = 1.4.3.3
         deviceUUID         = c630cdf6-46dc-2c45-c099-c9c455afb590
-        driverUUID         = d12cc906-29d2-5c75-90d9-1e427e2c380e
+        driverUUID         = d7ce4bc1-acf9-5be0-875a-ebb2a6300feb
 ```
-
 
 macOS
 -----
 | Project        | Version (git describe)      |
 |----------------|-----------------------------|
-| GLAD (dav1dde) | `2.0.8-1-gf492295` |
-| GLAD (tycho)   | `2.0.8-68-g213a330`   |
-| Volk           | `1.4.321.0-23-g1e0ec16`         |
-| xxHash         | `0.7.4-976-gc961fbe`       |
-| Vulkan-Headers | `1.4.327`   |
+| GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
+| GLAD (tycho)   | `2.0.8-91-g8092eae`   |
+| gloam          | `0.1.5-1-g3be2e6f`        |
+| Volk           | `1.4.341.0-21-g78463da`         |
+| xxHash         | `0.8.3`       |
+| Vulkan-Headers | `1.4.347-1-gf07ffc2`   |
 
 | Tool         | Name             | Version             |
 |--------------|------------------|---------------------|
-| Kernel       | `Darwin`   | `25.0.0`      |
-| Architecture | `arm64`   | `Apple M4 Pro`    |
+| Kernel       | `Darwin`   | `25.3.0`      |
+| Architecture | `arm64`   | `Apple M5`    |
 | CC           | `clang`        | `17.0.0`   |
 | CXX          | `clang++`       | `17.0.0`  |
 
 | Variable     | Value         |
 |--------------|---------------|
-| `OPTFLAGS` | `-O2 -mcpu=native -g0` |
+| `OPTFLAGS` | `-O2 -fno-unroll-loops -mcpu=native -g0` |
 | `CFLAGS`   | `-std=c17` |
 | `CXXFLAGS` | `-std=c++20` |
 
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 103140          | 515.7            |
-| Load device functions   | 200 | 262790          | 1313.95            |
-| Teardown and full init  | 20 | 49472          | 2473.6            |
+| Load instance functions | 200 | 112349          | 561.745            |
+| Load device functions   | 200 | 239689          | 1198.44            |
+| Teardown and full init  | 20 | 45823          | 2291.15            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 6655          | 33.275            |
-| Load device functions   | 200 | 37479          | 187.395            |
-| Teardown and full init  | 20 | 13238          | 661.9            |
+| Load instance functions | 200 | 4670          | 23.35            |
+| Load device functions   | 200 | 27285          | 136.425            |
+| Teardown and full init  | 20 | 15866          | 793.3            |
+
+[Gloam](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 5023          | 25.115            |
+| Load device functions   | 200 | 28537          | 142.685            |
+| Teardown and full init  | 20 | 16395          | 819.75            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 15628          | 78.14            |
-| Load device functions   | 200 | 74490          | 372.45            |
-| Teardown and full init  | 20 | 9833          | 491.65            |
+| Load instance functions | 200 | 11055          | 55.275            |
+| Load device functions   | 200 | 66567          | 332.835            |
+| Teardown and full init  | 20 | 8546          | 427.3            |
 
 Loader object sizes in bytes:
 ```
-304096  obj/loader-glad-dav1dde.o
- 73432  obj/loader-glad-tycho.o
-225864  obj/loader-volk.o
+275560  obj/loader-glad-dav1dde.o
+ 75640  obj/loader-glad-tycho.o
+ 74656  obj/loader-gloam.o
+250024  obj/loader-volk.o
 ```
 
 Test program sizes in bytes:
 ```
-180224  bin/test-glad-dav1dde
- 70064  bin/test-glad-tycho
-119128  bin/test-volk
+161344  bin/test-glad-dav1dde
+ 70032  bin/test-glad-tycho
+ 69880  bin/test-gloam
+119144  bin/test-volk
 ```
 
 Section sizes:
 ```
 __TEXT  __DATA  __OBJC  others      dec         hex
-131072  16384   0       4295016448  4295163904  100030000  bin/test-glad-dav1dde
+114688  16384   0       4295016448  4295147520  10002c000  bin/test-glad-dav1dde
  49152  16384   0       4295000064  4295065600  100018000  bin/test-glad-tycho
+ 49152  16384   0       4295000064  4295065600  100018000  bin/test-gloam
  98304  16384   0       4295000064  4295114752  100024000  bin/test-volk
 ```
 
@@ -277,18 +309,31 @@ vulkaninfo
 Devices:
 ========
 GPU0:
-        apiVersion         = 1.3.313
-        driverVersion      = 0.2.2108
+        apiVersion         = 1.4.334
+        driverVersion      = 0.2.2209
         vendorID           = 0x106b
-        deviceID           = 0x1a000209
+        deviceID           = 0x1a03020a
         deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
-        deviceName         = Apple M4 Pro
+        deviceName         = Apple M5
         driverID           = DRIVER_ID_MOLTENVK
         driverName         = MoltenVK
-        driverInfo         = 1.3.0
-        conformanceVersion = 1.3.8.0
-        deviceUUID         = 0000106b-1a00-0209-0000-000000000000
-        driverUUID         = 4d564b00-0000-283c-1a00-020900000000
+        driverInfo         = 1.4.1
+        conformanceVersion = 1.4.4.0
+        deviceUUID         = 0000106b-1a03-020a-0000-000000000000
+        driverUUID         = 4d564b00-0000-28a1-1a03-020a00000000
+GPU1:
+        apiVersion         = 1.3.340
+        driverVersion      = 26.0.99
+        vendorID           = 0x106b
+        deviceID           = 0x0064
+        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+        deviceName         = Apple M5
+        driverID           = DRIVER_ID_MESA_KOSMICKRISP
+        driverName         = KosmicKrisp
+        driverInfo         = vulkan-sdk-1.4.341.1
+        conformanceVersion = 1.4.3.2
+        deviceUUID         = 74040000-0100-0000-0000-000000000000
+        driverUUID         = 258801e9-778a-3af1-b03f-46cef7603a2a
 ```
 
 Commentary
@@ -297,13 +342,14 @@ Commentary
 libvulkan is slow
 -----------------
 
-The majority of the time in my GLAD fork is taken up by `strcmp()` calls inside
+The majority of the time in Gloam is taken up by `strcmp()` calls inside
 libvulkan. This, frustratingly, is how libvulkan decides which function pointer
 is being requested by the application. I wrote a patch for libvulkan which uses
-the same kind of strategy I used in my GLAD fork: precomputed XXH3 64-bit values
-and runtime comparison against the precomputed values. This ends up being
-dramatically faster than repeated string comparisons. The libvulkan patch is
-available [here](https://github.com/tycho/vk-api-loader-shootout/blob/master/experiments/0001-use-xxhash-for-function-name-lookups.patch).
+the same kind of strategy I used in Gloam and my GLAD fork: precomputed XXH3
+64-bit values and runtime comparison against the precomputed values. This ends
+up being dramatically faster than repeated string comparisons. The libvulkan
+patch is available
+[here](https://github.com/tycho/vk-api-loader-shootout/blob/master/experiments/0001-use-xxhash-for-function-name-lookups.patch).
 
 Here's the Linux build from the previous section, run with a patched libvulkan
 dropped into the `bin/` directory (`make run` adds the folder to
@@ -312,23 +358,30 @@ dropped into the `bin/` directory (`make run` adds the folder to
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 840576          | 4202.88            |
-| Load device functions   | 200 | 1092903          | 5464.52            |
-| Teardown and full init  | 20 | 283264          | 14163.2            |
+| Load instance functions | 200 | 127423          | 637.115            |
+| Load device functions   | 200 | 356760          | 1783.8            |
+| Teardown and full init  | 20 | 61296          | 3064.8            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2141          | 10.705            |
-| Load device functions   | 200 | 14896          | 74.48            |
-| Teardown and full init  | 20 | 168324          | 8416.2            |
+| Load instance functions | 200 | 2316          | 11.58            |
+| Load device functions   | 200 | 15694          | 78.47            |
+| Teardown and full init  | 20 | 22755          | 1137.75            |
+
+[Gloam](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 2513          | 12.565            |
+| Load device functions   | 200 | 16255          | 81.275            |
+| Teardown and full init  | 20 | 22877          | 1143.85            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2125          | 10.625            |
-| Load device functions   | 200 | 13314          | 66.57            |
-| Teardown and full init  | 20 | 1548          | 77.4            |
+| Load instance functions | 200 | 2482          | 12.41            |
+| Load device functions   | 200 | 14613          | 73.065            |
+| Teardown and full init  | 20 | 1726          | 86.3            |
 
 Note in particular how much faster volk is with that patch (compared to
 [above](#linux)). We cut around 90% of our `Teardown and full init` test time
@@ -340,64 +393,78 @@ added to the `bin` directory:
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 321240          | 1606.2            |
-| Load device functions   | 200 | 516164          | 2580.82            |
-| Teardown and full init  | 20 | 120276          | 6013.8            |
+| Load instance functions | 200 | 526716          | 2633.58            |
+| Load device functions   | 200 | 708675          | 3543.38            |
+| Teardown and full init  | 20 | 171186          | 8559.3            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2997          | 14.985            |
-| Load device functions   | 200 | 15784          | 78.92            |
-| Teardown and full init  | 20 | 56091          | 2804.55            |
+| Load instance functions | 200 | 3009          | 15.045            |
+| Load device functions   | 200 | 16631          | 83.155            |
+| Teardown and full init  | 20 | 101231          | 5061.55            |
+
+[Gloam](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 3047          | 15.235            |
+| Load device functions   | 200 | 16640          | 83.2            |
+| Teardown and full init  | 20 | 93009          | 4650.45            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 3328          | 16.64            |
-| Load device functions   | 200 | 13088          | 65.44            |
-| Teardown and full init  | 20 | 1612          | 80.6            |
+| Load instance functions | 200 | 3417          | 17.085            |
+| Load device functions   | 200 | 14496          | 72.48            |
+| Teardown and full init  | 20 | 1803          | 90.15            |
 
 And on macOS with a patched libvulkan:
 
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 81071          | 405.355            |
-| Load device functions   | 200 | 168657          | 843.285            |
-| Teardown and full init  | 20 | 33660          | 1683            |
+| Load instance functions | 200 | 53403          | 267.015            |
+| Load device functions   | 200 | 128056          | 640.28            |
+| Teardown and full init  | 20 | 24360          | 1218            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 406          | 2.03            |
-| Load device functions   | 200 | 1308          | 6.54            |
-| Teardown and full init  | 20 | 8074          | 403.7            |
+| Load instance functions | 200 | 423          | 2.115            |
+| Load device functions   | 200 | 1373          | 6.865            |
+| Teardown and full init  | 20 | 4006          | 200.3            |
+
+[Gloam](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 478          | 2.39            |
+| Load device functions   | 200 | 1391          | 6.955            |
+| Teardown and full init  | 20 | 3980          | 199            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 461          | 2.305            |
-| Load device functions   | 200 | 1878          | 9.39            |
-| Teardown and full init  | 20 | 243          | 12.15            |
+| Load instance functions | 200 | 503          | 2.515            |
+| Load device functions   | 200 | 2150          | 10.75            |
+| Teardown and full init  | 20 | 275          | 13.75            |
 
-volk vs GLAD performance
+Why is Volk so fast?
 ------------------------
 
-There's a major notable feature GLAD has that volk does not provide: extension
-detection. With GLAD you can do things after the API loader has initialized,
-like this:
+There's a major notable feature GLAD/Gloam have that volk does not provide:
+extension detection. With GLAD and Gloam, you can do things after the API
+loader has initialized, like this:
 
 ```
 if (GLAD_VK_EXT_graphics_pipeline_library)
     ...
 ```
 
-This feature is also available in the other GLAD API loaders (EGL, GLX, WGL,
-OpenGL, etc).
+This feature is also available in the other GLAD/Gloam API loaders (EGL, GLX,
+WGL, OpenGL, etc).
 
-Extension detection is implemented on the GLAD Vulkan API loader by using these
-two functions:
+Extension detection is implemented on the GLAD/Gloam Vulkan API loaders by
+using these two functions:
 
 ```
 vkEnumerateInstanceExtensionProperties

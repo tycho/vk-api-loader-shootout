@@ -1,4 +1,4 @@
-From 879dbf2085c6ced85113cf57a7474647187f7755 Mon Sep 17 00:00:00 2001
+From a971e04bb1b83436aae2c9c50e04ed4d0e03cb59 Mon Sep 17 00:00:00 2001
 From: Steven Noonan <steven@uplinklabs.net>
 Date: Sun, 21 Sep 2025 21:02:55 -0700
 Subject: [PATCH 2/2] use ICD cache instead of rescanning ICDs
@@ -9,10 +9,10 @@ Signed-off-by: Steven Noonan <steven@uplinklabs.net>
  1 file changed, 1 insertion(+), 11 deletions(-)
 
 diff --git a/loader/loader.c b/loader/loader.c
-index 8ddf5292a..c72a877b2 100644
+index e8a799b61..d07a68e89 100644
 --- a/loader/loader.c
 +++ b/loader/loader.c
-@@ -7566,14 +7566,12 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumerateInstanceExtensionProperties(c
+@@ -7565,14 +7565,12 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumerateInstanceExtensionProperties(c
      struct loader_extension_list *global_ext_list = NULL;
      struct loader_layer_list instance_layers;
      struct loader_extension_list local_ext_list;
@@ -27,7 +27,7 @@ index 8ddf5292a..c72a877b2 100644
  
      res = parse_layer_environment_var_filters(NULL, &layer_filters);
      if (VK_SUCCESS != res) {
-@@ -7603,18 +7601,11 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumerateInstanceExtensionProperties(c
+@@ -7602,18 +7600,11 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumerateInstanceExtensionProperties(c
          // Preload ICD libraries so subsequent calls to EnumerateInstanceExtensionProperties don't have to load them
          loader_preload_icds();
  
@@ -47,7 +47,7 @@ index 8ddf5292a..c72a877b2 100644
  
          // Append enabled implicit layers.
          res = loader_scan_for_implicit_layers(NULL, &instance_layers, &layer_filters);
-@@ -7651,7 +7642,6 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumerateInstanceExtensionProperties(c
+@@ -7650,7 +7641,6 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumerateInstanceExtensionProperties(c
      }
  
  out:
