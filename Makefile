@@ -94,13 +94,13 @@ run: build
 	@echo "| \`CXXFLAGS\` | \`$(CXXFLAGS)\` |"
 	@echo
 	@echo "[GLAD (dav1dde)](https://github.com/Dav1dde/glad)"
-	@(cd bin; ./test-glad-dav1dde)
+	@(cd bin; ./test-glad-dav1dde) && sleep 1
 	@echo
 	@echo "[GLAD (tycho)](https://github.com/tycho/glad)"
-	@(cd bin; ./test-glad-tycho)
+	@(cd bin; ./test-glad-tycho) && sleep 1
 	@echo
 	@echo "[Gloam](https://github.com/tycho/gloam)"
-	@(cd bin; ./test-gloam)
+	@(cd bin; ./test-gloam) && sleep 1
 	@echo
 	@echo "[Volk](https://github.com/zeux/volk)"
 	@(cd bin; ./test-volk)
