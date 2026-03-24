@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test-glad-dav1dde", "test-g
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test-volk", "test-volk.vcxproj", "{2CA20DDE-9DFB-4B84-94FE-20CB51800710}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test-gloam", "test-gloam.vcxproj", "{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -55,6 +57,18 @@ Global
 		{2CA20DDE-9DFB-4B84-94FE-20CB51800710}.Release|x64.Build.0 = Release|x64
 		{2CA20DDE-9DFB-4B84-94FE-20CB51800710}.Release|x86.ActiveCfg = Release|Win32
 		{2CA20DDE-9DFB-4B84-94FE-20CB51800710}.Release|x86.Build.0 = Release|Win32
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Debug|ARM64.Build.0 = Debug|ARM64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Debug|x64.ActiveCfg = Debug|x64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Debug|x64.Build.0 = Debug|x64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Debug|x86.ActiveCfg = Debug|Win32
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Debug|x86.Build.0 = Debug|Win32
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Release|ARM64.ActiveCfg = Release|ARM64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Release|ARM64.Build.0 = Release|ARM64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Release|x64.ActiveCfg = Release|x64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Release|x64.Build.0 = Release|x64
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Release|x86.ActiveCfg = Release|Win32
+		{56EBD5C0-C386-4FBA-9DE3-618A6F008D7C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

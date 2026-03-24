@@ -120,7 +120,7 @@ static bool loader_init()
         return false;
     }
 #elif defined(USE_GLOAM)
-    int vk_version = gloamLoaderLoadVulkan(NULL, NULL, NULL);
+    int vk_version = gloamVulkanInitialize(libvulkan_handle);
     if (!vk_version) {
         std::cerr << "Failed to initialize gloam!" << std::endl;
         return false;
@@ -130,7 +130,7 @@ static bool loader_init()
 }
 
 XOM_NOINLINE
-static bool loader_load_instance(VkInstance instance)
+static bool loader_load_instance(VkInstance instance, uint32_t apiVersion, uint32_t nEnabledExtensions, const char * const *ppEnabledExtensions)
 {
 #if defined(USE_VOLK)
     volkLoadInstanceOnly(instance);
@@ -141,7 +141,7 @@ static bool loader_load_instance(VkInstance instance)
         return false;
     }
 #elif defined(USE_GLOAM)
-    int vk_version = gloamLoaderLoadVulkan(instance, NULL, NULL);
+    int vk_version = gloamVulkanLoadInstance(instance, apiVersion, nEnabledExtensions, ppEnabledExtensions);
     if (!vk_version) {
         std::cerr << "gloam failed to load VK instance functions!" << std::endl;
         return false;
@@ -151,7 +151,7 @@ static bool loader_load_instance(VkInstance instance)
 }
 
 XOM_NOINLINE
-static bool loader_load_device(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
+static bool loader_load_device(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, uint32_t nEnabledExtensions, const char * const *ppEnabledExtensions)
 {
 #if defined(USE_VOLK)
     volkLoadDevice(device);
@@ -162,7 +162,7 @@ static bool loader_load_device(VkInstance instance, VkPhysicalDevice physicalDev
         return false;
     }
 #elif defined(USE_GLOAM)
-    int vk_version = gloamLoaderLoadVulkan(instance, physicalDevice, device);
+    int vk_version = gloamVulkanLoadDevice(device, physicalDevice, nEnabledExtensions, ppEnabledExtensions);
     if (!vk_version) {
         std::cerr << "gloam failed to load VK device functions!" << std::endl;
         return false;
@@ -179,7 +179,7 @@ static bool loader_destroy()
 #elif defined(USE_GLAD)
     gladLoaderUnloadVulkan();
 #elif defined(USE_GLOAM)
-    gloamLoaderUnloadVulkan();
+    gloamVulkanFinalize();
 #endif
     return true;
 }
@@ -199,7 +199,8 @@ int main() {
 
     VkInstance instance;
     VkDevice device;
-    std::vector<const char *> enabledExtensions;
+    std::vector<const char *> enabledInstanceExtensions;
+    std::vector<const char *> enabledDeviceExtensions;
     bool supportsPortabilityEnumeration = false;
 
     // Vulkan instance creation info
@@ -216,8 +217,6 @@ int main() {
     instanceCreateInfo.pApplicationInfo = &appInfo;
 #if defined(GLAD_VK_KHR_portability_enumeration)
     supportsPortabilityEnumeration = GLAD_VK_KHR_portability_enumeration;
-#elif defined(GLOAM_VK_KHR_portability_enumeration)
-    supportsPortabilityEnumeration = GLOAM_VK_KHR_portability_enumeration;
 #else
     {
         uint32_t count = 0;
@@ -227,19 +226,17 @@ int main() {
         for (uint32_t i = 0; i < count; i++) {
             if (strcmp(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, extensions[i].extensionName) == 0) {
                 supportsPortabilityEnumeration = true;
-                break;
             }
         }
     }
 #endif
     if (supportsPortabilityEnumeration) {
-        enabledExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        enabledInstanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
         instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
-    if (!enabledExtensions.empty()) {
-        instanceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
-        instanceCreateInfo.enabledExtensionCount = enabledExtensions.size();
-    }
+
+    instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.empty() ? nullptr : enabledInstanceExtensions.data();
+    instanceCreateInfo.enabledExtensionCount = enabledInstanceExtensions.size();
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
         std::cerr << "Failed to create Vulkan instance!" << std::endl;
@@ -247,7 +244,7 @@ int main() {
     }
 
     // Load instance functions
-    if (!loader_load_instance(instance))
+    if (!loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames))
         return -1;
 
     // Select physical device
@@ -276,6 +273,8 @@ int main() {
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+    deviceCreateInfo.ppEnabledExtensionNames = enabledDeviceExtensions.empty() ? nullptr : enabledDeviceExtensions.data();
+    deviceCreateInfo.enabledExtensionCount = enabledDeviceExtensions.size();
 
     if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
         std::cerr << "Failed to create logical device!" << std::endl;
@@ -284,7 +283,7 @@ int main() {
     }
 
     // Load device functions
-    if (!loader_load_device(instance, physicalDevice, device))
+    if (!loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames))
         return -1;
 
     // Benchmark loading instance functions
@@ -292,7 +291,7 @@ int main() {
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT; ++i) {
-            loader_load_instance(instance);
+            loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames);
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestInstanceDuration = std::min(bestInstanceDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
@@ -303,7 +302,7 @@ int main() {
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT; ++i) {
-            loader_load_device(instance, physicalDevice, device);
+            loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames);
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestDeviceDuration = std::min(bestDeviceDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
@@ -316,8 +315,8 @@ int main() {
         for (int i = 0; i < INNER_COUNT_REINIT; ++i) {
             loader_destroy();
             loader_init();
-            loader_load_instance(instance);
-            loader_load_device(instance, physicalDevice, device);
+            loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames);
+            loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames);
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestFullDuration = std::min(bestFullDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
