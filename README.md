@@ -1,8 +1,20 @@
-# Overview
+# Vulkan API Loader Shootout
+
+A benchmark comparing Vulkan API function-pointer loaders:
+[GLAD (upstream)](https://github.com/Dav1dde/glad),
+[GLAD (tycho)](https://github.com/tycho/glad),
+[Gloam](https://github.com/tycho/gloam), and
+[Volk](https://github.com/zeux/volk).
+
+Each loader is benchmarked on three tasks: loading instance-scope functions,
+loading device-scope functions, and a full teardown-and-reinitialize cycle.
+Gloam is tested in two modes: **discover** (automatic extension detection, like
+GLAD) and **enabled-list** (the caller specifies what was enabled). The
+benchmark creates a VK 1.3 instance and device with no extensions enabled
+beyond `VK_KHR_portability_enumeration` (when available).
+
 
 ## Building
-
-To build and run this:
 
 ```
 $ git submodule update --init --recursive
@@ -31,6 +43,15 @@ a functional Vulkan driver.
 
 ## Results
 
+Each platform is tested with two builds of the Vulkan loader library: the
+**unpatched** stock release, and
+a **[patched](#libvulkan-is-actually-just-a-strcmp-benchmark)** build that
+replaces the loader's internal `strcmp()` chain with XXH3 hash lookups. The
+patch is explained in detail [at the end of this
+document](#libvulkan-is-actually-just-a-strcmp-benchmark); the short version is
+that the stock Vulkan loader uses linear string comparison to resolve function
+names, and this is the dominant cost in every benchmark below.
+
 ### Linux
 
 | Project        | Version (git describe)      |
@@ -55,38 +76,87 @@ a functional Vulkan driver.
 | `CFLAGS`   | `-std=c17` |
 | `CXXFLAGS` | `-std=c++20` |
 
+#### Unpatched libvulkan
+
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 757151          | 3785.76            |
-| Load device functions   | 200 | 1208994          | 6044.97            |
-| Teardown and full init  | 20 | 271865          | 13593.2            |
+| Load instance functions | 200 | 950266          | 4751.33            |
+| Load device functions   | 200 | 1416296          | 7081.48            |
+| Teardown and full init  | 20 | 328740          | 16437            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 12566          | 62.83            |
-| Load device functions   | 200 | 142006          | 710.03            |
-| Teardown and full init  | 20 | 159309          | 7965.45            |
+| Load instance functions | 200 | 12979          | 64.895            |
+| Load device functions   | 200 | 147642          | 738.21            |
+| Teardown and full init  | 20 | 196591          | 9829.55            |
 
-[Gloam](https://github.com/tycho/gloam)
+[Gloam (discover API)](https://github.com/tycho/gloam)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 14631          | 73.155            |
-| Load device functions   | 200 | 14456          | 72.28            |
-| Teardown and full init  | 20 | 2936          | 146.8            |
+| Load instance functions | 200 | 904481          | 4522.4            |
+| Load device functions   | 200 | 160814          | 804.07            |
+| Teardown and full init  | 20 | 197911          | 9895.55            |
+
+[Gloam (enabled-list API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 15004          | 75.02            |
+| Load device functions   | 200 | 15010          | 75.05            |
+| Teardown and full init  | 20 | 2971          | 148.55            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 17295          | 86.475            |
-| Load device functions   | 200 | 150089          | 750.445            |
-| Teardown and full init  | 20 | 17051          | 852.55            |
+| Load instance functions | 200 | 17822          | 89.11            |
+| Load device functions   | 200 | 155333          | 776.665            |
+| Teardown and full init  | 20 | 17515          | 875.75            |
+
+#### [Patched libvulkan](#libvulkan-is-actually-just-a-strcmp-benchmark)
+
+[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 128295          | 641.475            |
+| Load device functions   | 200 | 357590          | 1787.95            |
+| Teardown and full init  | 20 | 61730          | 3086.5            |
+
+[GLAD (tycho)](https://github.com/tycho/glad)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 2275          | 11.375            |
+| Load device functions   | 200 | 15657          | 78.285            |
+| Teardown and full init  | 20 | 23317          | 1165.85            |
+
+[Gloam (discover API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 93763          | 468.815            |
+| Load device functions   | 200 | 21033          | 105.165            |
+| Teardown and full init  | 20 | 23274          | 1163.7            |
+
+[Gloam (enabled-list API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 2633          | 13.165            |
+| Load device functions   | 200 | 1571          | 7.855            |
+| Teardown and full init  | 20 | 443          | 22.15            |
+
+[Volk](https://github.com/zeux/volk)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 2368          | 11.84            |
+| Load device functions   | 200 | 30593          | 152.965            |
+| Teardown and full init  | 20 | 3261          | 163.05            |
+
+#### Binary sizes
 
 Loader object sizes in bytes:
 ```
 316288  obj/loader-glad-dav1dde.o
  67192  obj/loader-glad-tycho.o
+ 48104  obj/loader-gloam-discover.o
  48104  obj/loader-gloam.o
 312912  obj/loader-volk.o
 ```
@@ -96,6 +166,7 @@ Test program sizes in bytes:
 104800  bin/test-glad-dav1dde
  80288  bin/test-glad-tycho
  55712  bin/test-gloam
+ 55696  bin/test-gloam-discover
  96568  bin/test-volk
 ```
 
@@ -105,12 +176,14 @@ Section sizes:
 99092  832   6568  106492  19ffc  bin/test-glad-dav1dde
 62043  7360  7040  76443   12a9b  bin/test-glad-tycho
 48092  840   7040  55972   daa4   bin/test-gloam
+47476  824   7032  55332   d824   bin/test-gloam-discover
 88993  792   6040  95825   17651  bin/test-volk
 ```
 
+#### Test hardware
+
 vulkaninfo
 ```
-'DISPLAY' environment variable not set... skipping surface info
 Devices:
 ========
 GPU0:
@@ -152,39 +225,88 @@ GPU0:
 | `CFLAGS`   | `-std=c17` |
 | `CXXFLAGS` | `-std=c++20` |
 
+#### Unpatched libvulkan
+
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 534584          | 2672.92            |
-| Load device functions   | 200 | 983645          | 4918.23            |
-| Teardown and full init  | 20 | 201104          | 10055.2            |
+| Load instance functions | 200 | 597580          | 2987.9            |
+| Load device functions   | 200 | 1041536          | 5207.68            |
+| Teardown and full init  | 20 | 212371          | 10618.5            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 8953          | 44.765            |
-| Load device functions   | 200 | 109913          | 549.565            |
-| Teardown and full init  | 20 | 106057          | 5302.85            |
+| Load instance functions | 200 | 9270          | 46.35            |
+| Load device functions   | 200 | 107470          | 537.35            |
+| Teardown and full init  | 20 | 106370          | 5318.5            |
 
-[Gloam](https://github.com/tycho/gloam)
+[Gloam (discover API)](https://github.com/tycho/gloam)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 9643          | 48.215            |
-| Load device functions   | 200 | 7247          | 36.235            |
-| Teardown and full init  | 20 | 1816          | 90.8            |
+| Load instance functions | 200 | 444608          | 2223.04            |
+| Load device functions   | 200 | 127019          | 635.095            |
+| Teardown and full init  | 20 | 111299          | 5564.95            |
+
+[Gloam (enabled-list API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 10236          | 51.18            |
+| Load device functions   | 200 | 7267          | 36.335            |
+| Teardown and full init  | 20 | 1754          | 87.7            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 13003          | 65.015            |
-| Load device functions   | 200 | 96282          | 481.41            |
-| Teardown and full init  | 20 | 12190          | 609.5            |
+| Load instance functions | 200 | 13069          | 65.345            |
+| Load device functions   | 200 | 98229          | 491.145            |
+| Teardown and full init  | 20 | 12757          | 637.85            |
+
+#### [Patched libvulkan](#libvulkan-is-actually-just-a-strcmp-benchmark)
+
+[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 514906          | 2574.53            |
+| Load device functions   | 200 | 716663          | 3583.32            |
+| Teardown and full init  | 20 | 175565          | 8778.25            |
+
+[GLAD (tycho)](https://github.com/tycho/glad)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 2883          | 14.415            |
+| Load device functions   | 200 | 15960          | 79.8            |
+| Teardown and full init  | 20 | 94003          | 4700.15            |
+
+[Gloam (discover API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 402281          | 2011.4            |
+| Load device functions   | 200 | 18633          | 93.165            |
+| Teardown and full init  | 20 | 91944          | 4597.2            |
+
+[Gloam (enabled-list API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 4015          | 20.075            |
+| Load device functions   | 200 | 2317          | 11.585            |
+| Teardown and full init  | 20 | 650          | 32.5            |
+
+[Volk](https://github.com/zeux/volk)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 3243          | 16.215            |
+| Load device functions   | 200 | 13721          | 68.605            |
+| Teardown and full init  | 20 | 1712          | 85.6            |
+
+#### Binary sizes
 
 Loader object sizes in bytes:
 ```
 192545  obj/loader-glad-dav1dde.o
  52988  obj/loader-glad-tycho.o
  44580  obj/loader-gloam.o
+ 44580  obj/loader-gloam-discover.o
 221552  obj/loader-volk.o
 ```
 
@@ -193,6 +315,7 @@ Test program sizes in bytes:
 112128  bin/test-glad-dav1dde.exe
  64000  bin/test-glad-tycho.exe
  60928  bin/test-gloam.exe
+ 60928  bin/test-gloam-discover.exe
 101888  bin/test-volk.exe
 ```
 
@@ -202,8 +325,11 @@ Section sizes:
 70646  39320  0    109966  1ad8e  bin/test-glad-dav1dde.exe
 14886  46172  0    61058   ee82   bin/test-glad-tycho.exe
 17270  41136  0    58406   e426   bin/test-gloam.exe
+16966  41096  0    58062   e2ce   bin/test-gloam-discover.exe
 70326  29244  0    99570   184f2  bin/test-volk.exe
 ```
+
+#### Test hardware
 
 vulkaninfo
 ```
@@ -261,38 +387,87 @@ GPU1:
 | `CFLAGS`   | `-std=c17` |
 | `CXXFLAGS` | `-std=c++20` |
 
+#### Unpatched libvulkan
+
 [GLAD (dav1dde)](https://github.com/Dav1dde/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 107995          | 539.975            |
-| Load device functions   | 200 | 227384          | 1136.92            |
-| Teardown and full init  | 20 | 44170          | 2208.5            |
+| Load instance functions | 200 | 107312          | 536.56            |
+| Load device functions   | 200 | 231218          | 1156.09            |
+| Teardown and full init  | 20 | 44049          | 2202.45            |
 
 [GLAD (tycho)](https://github.com/tycho/glad)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 4354          | 21.77            |
-| Load device functions   | 200 | 26572          | 132.86            |
-| Teardown and full init  | 20 | 15461          | 773.05            |
+| Load instance functions | 200 | 4285          | 21.425            |
+| Load device functions   | 200 | 27329          | 136.645            |
+| Teardown and full init  | 20 | 15577          | 778.85            |
 
-[Gloam](https://github.com/tycho/gloam)
+[Gloam (discover API)](https://github.com/tycho/gloam)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 8737          | 43.685            |
-| Load device functions   | 200 | 5004          | 25.02            |
-| Teardown and full init  | 20 | 1402          | 70.1            |
+| Load instance functions | 200 | 60047          | 300.235            |
+| Load device functions   | 200 | 28361          | 141.805            |
+| Teardown and full init  | 20 | 15267          | 763.35            |
+
+[Gloam (enabled-list API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 8775          | 43.875            |
+| Load device functions   | 200 | 4996          | 24.98            |
+| Teardown and full init  | 20 | 1400          | 70            |
 
 [Volk](https://github.com/zeux/volk)
 | Task                 | Iterations | Total Time (µs) | Average Time (µs) |
 |----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 10792          | 53.96            |
-| Load device functions   | 200 | 63357          | 316.785            |
-| Teardown and full init  | 20 | 7351          | 367.55            |
+| Load instance functions | 200 | 11069          | 55.345            |
+| Load device functions   | 200 | 61813          | 309.065            |
+| Teardown and full init  | 20 | 7358          | 367.9            |
+
+#### [Patched libvulkan](#libvulkan-is-actually-just-a-strcmp-benchmark)
+
+[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 52605          | 263.025            |
+| Load device functions   | 200 | 123350          | 616.75            |
+| Teardown and full init  | 20 | 23667          | 1183.35            |
+
+[GLAD (tycho)](https://github.com/tycho/glad)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 439          | 2.195            |
+| Load device functions   | 200 | 1389          | 6.945            |
+| Teardown and full init  | 20 | 3783          | 189.15            |
+
+[Gloam (discover API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 13648          | 68.24            |
+| Load device functions   | 200 | 2588          | 12.94            |
+| Teardown and full init  | 20 | 3746          | 187.3            |
+
+[Gloam (enabled-list API)](https://github.com/tycho/gloam)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 859          | 4.295            |
+| Load device functions   | 200 | 321          | 1.605            |
+| Teardown and full init  | 20 | 131          | 6.55            |
+
+[Volk](https://github.com/zeux/volk)
+| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
+|----------------------|------------|-----------------|-------------------|
+| Load instance functions | 200 | 503          | 2.515            |
+| Load device functions   | 200 | 2130          | 10.65            |
+| Teardown and full init  | 20 | 276          | 13.8            |
+
+#### Binary sizes
 
 Loader object sizes in bytes:
 ```
 275560  obj/loader-glad-dav1dde.o
  75640  obj/loader-glad-tycho.o
+ 44880  obj/loader-gloam-discover.o
  44880  obj/loader-gloam.o
 250024  obj/loader-volk.o
 ```
@@ -302,6 +477,7 @@ Test program sizes in bytes:
 161344  bin/test-glad-dav1dde
  70032  bin/test-glad-tycho
  69992  bin/test-gloam
+ 70000  bin/test-gloam-discover
 119144  bin/test-volk
 ```
 
@@ -311,8 +487,11 @@ __TEXT  __DATA  __OBJC  others      dec         hex
 114688  16384   0       4295016448  4295147520  10002c000  bin/test-glad-dav1dde
  49152  16384   0       4295000064  4295065600  100018000  bin/test-glad-tycho
  49152  16384   0       4295000064  4295065600  100018000  bin/test-gloam
+ 49152  16384   0       4295000064  4295065600  100018000  bin/test-gloam-discover
  98304  16384   0       4295000064  4295114752  100024000  bin/test-volk
 ```
+
+#### Test hardware
 
 vulkaninfo
 ```
@@ -346,313 +525,228 @@ GPU1:
         driverUUID         = 258801e9-778a-3af1-b03f-46cef7603a2a
 ```
 
-# Commentary
 
-## libvulkan is slow
+## Analysis
 
-The majority of the time in Gloam is taken up by `strcmp()` calls inside
-libvulkan. This, frustratingly, is how libvulkan decides which function pointer
-is being requested by the application. I wrote a patch for libvulkan which uses
-the same kind of strategy I used in Gloam and my GLAD fork: precomputed XXH3
-64-bit values and runtime comparison against the precomputed values. This ends
-up being dramatically faster than repeated string comparisons. The libvulkan
-patch is available
-[here](https://github.com/tycho/vk-api-loader-shootout/blob/master/experiments/0001-use-xxhash-for-function-name-lookups.patch).
+### The cost of extension detection
 
-### Linux
+GLAD and Gloam's discover mode provide a feature that Volk does not: extension
+presence flags. After loading, you can query whether a specific extension is
+available:
 
-Here's the Linux build from the previous section, run with a patched libvulkan
-dropped into the `bin/` directory (`make run` adds the folder to
-`LD_LIBRARY_PATH`):
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 122923          | 614.615            |
-| Load device functions   | 200 | 347979          | 1739.89            |
-| Teardown and full init  | 20 | 59780          | 2989            |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2143          | 10.715            |
-| Load device functions   | 200 | 20933          | 104.665            |
-| Teardown and full init  | 20 | 22696          | 1134.8            |
-
-[Gloam](https://github.com/tycho/gloam)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2493          | 12.465            |
-| Load device functions   | 200 | 1497          | 7.485            |
-| Teardown and full init  | 20 | 417          | 20.85            |
-
-[Volk](https://github.com/zeux/volk)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2268          | 11.34            |
-| Load device functions   | 200 | 21713          | 108.565            |
-| Teardown and full init  | 20 | 2414          | 120.7            |
-
-Note in particular how much faster volk is with that patch (compared to
-[above](#linux)). We cut around 90% of our `Teardown and full init` test time
-by using a patched libvulkan.
-
-### MinGW
-
-This approach helps on Windows too. Here's MinGW with a patched libvulkan DLL
-added to the `bin` directory:
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 516683          | 2583.41            |
-| Load device functions   | 200 | 671456          | 3357.28            |
-| Teardown and full init  | 20 | 163671          | 8183.55            |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2905          | 14.525            |
-| Load device functions   | 200 | 15760          | 78.8            |
-| Teardown and full init  | 20 | 90383          | 4519.15            |
-
-[Gloam](https://github.com/tycho/gloam)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 4025          | 20.125            |
-| Load device functions   | 200 | 2330          | 11.65            |
-| Teardown and full init  | 20 | 648          | 32.4            |
-
-[Volk](https://github.com/zeux/volk)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 3338          | 16.69            |
-| Load device functions   | 200 | 13677          | 68.385            |
-| Teardown and full init  | 20 | 1700          | 85            |
-
-### macOS
-
-And on macOS with a patched libvulkan:
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 51812          | 259.06            |
-| Load device functions   | 200 | 124249          | 621.245            |
-| Teardown and full init  | 20 | 23489          | 1174.45            |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 424          | 2.12            |
-| Load device functions   | 200 | 1362          | 6.81            |
-| Teardown and full init  | 20 | 3763          | 188.15            |
-
-[Gloam](https://github.com/tycho/gloam)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 962          | 4.81            |
-| Load device functions   | 200 | 329          | 1.645            |
-| Teardown and full init  | 20 | 132          | 6.6            |
-
-[Volk](https://github.com/zeux/volk)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 507          | 2.535            |
-| Load device functions   | 200 | 2163          | 10.815            |
-| Teardown and full init  | 20 | 277          | 13.85            |
-
-## Why is Volk so fast compared to GLAD?
-
-There's a major notable feature GLAD/Gloam have that volk does not provide:
-extension detection. With GLAD and Gloam, you can do things after the API
-loader has initialized, like this:
-
-```
+```c
 if (GLAD_VK_EXT_graphics_pipeline_library)
     ...
 ```
 
-This feature is also available in the other GLAD/Gloam API loaders (EGL, GLX,
-WGL, OpenGL, etc).
+This is also available in the other GLAD/Gloam API loaders (EGL, GLX, WGL,
+OpenGL, etc).
 
-Extension detection is implemented on the GLAD/Gloam Vulkan API loaders by
-using these two functions:
-
-```
-vkEnumerateInstanceExtensionProperties
-vkEnumerateDeviceExtensionProperties
-```
-
-These APIs are unfortunately **very** expensive to call, because they end up
-loading and unloading ICDs each time they are called. It also scans all the
-implicit layers.
-
-## Gloam: discovery mode vs. enabled-list loading
-
-Gloam offers two Vulkan loading workflows. The **discovery mode**
-(`gloamLoaderLoadVulkan`) works like GLAD: it calls
+To provide this, GLAD and Gloam's discover mode call
 `vkEnumerateInstanceExtensionProperties` and
-`vkEnumerateDeviceExtensionProperties` to find out what the driver supports,
-then sets the extension presence flags and loads the corresponding PFNs. The
-**enabled-list mode** (`gloamVulkanInitialize` / `gloamVulkanLoadInstance`
-/ `gloamVulkanLoadDevice`) skips enumeration entirely — the caller tells gloam
-which API version and extensions they enabled, and gloam loads only those PFNs.
+`vkEnumerateDeviceExtensionProperties` at load time. These APIs are
+unfortunately **very** expensive — the Vulkan loader implementation ends up
+loading and unloading every ICD and scanning all implicit layers each time they
+are called.
 
-The benchmark numbers in the results tables above use the enabled-list mode.
-Here's what Gloam looks like in discovery mode on the same Linux machine, for
-comparison.
+This is why GLAD and Gloam's discover mode show such high teardown-and-reinit
+numbers (Linux, unpatched): GLAD (tycho) at ~9830µs and Gloam discover at
+~9896µs. The device-load numbers are similarly inflated because
+`vkEnumerateDeviceExtensionProperties` runs during that phase.
 
-### Linux (discovery mode, unpatched libvulkan)
+Volk sidesteps this cost entirely because it does no extension detection at
+all — but this comes with trade-offs described below.
 
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 940596          | 4702.98            |
-| Load device functions   | 200 | 1409517          | 7047.59            |
-| Teardown and full init  | 20 | 328258          | 16412.9            |
+### Trade-offs in the load-everything approach
 
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 12934          | 64.67            |
-| Load device functions   | 200 | 148625          | 743.125            |
-| Teardown and full init  | 20 | 197237          | 9861.85            |
+Volk is the most widely used Vulkan function-pointer loader, and for good
+reason: it's fast, simple, header-only, and has zero dependencies beyond the
+Vulkan headers. Its design — call `vkGetInstanceProcAddr` or
+`vkGetDeviceProcAddr` for every function that compiles in on the target
+platform, guarded only by compile-time platform macros like
+`VK_USE_PLATFORM_METAL_EXT` — avoids the expensive enumeration calls entirely
+and keeps the implementation straightforward.
 
-[Gloam](https://github.com/tycho/gloam) (discovery mode)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 14175          | 70.875            |
-| Load device functions   | 200 | 151916          | 759.58            |
-| Teardown and full init  | 20 | 198197          | 9909.85            |
+This approach does come with two trade-offs that are worth being aware of:
 
-[Volk](https://github.com/zeux/volk)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 17624          | 88.12            |
-| Load device functions   | 200 | 152463          | 762.315            |
-| Teardown and full init  | 20 | 17094          | 854.7            |
+**Ambiguous non-NULL pointers.** The Vulkan spec allows
+`vkGetInstanceProcAddr` to return a non-NULL function pointer for *any* known
+command name, regardless of whether the corresponding extension was enabled at
+instance or device creation. The returned pointer is typically a loader
+trampoline stub, and calling it is undefined behavior per the spec. Since
+every slot is requested unconditionally, some populated pointers may not be
+safe to call. Users need to track their enabled extensions separately to know
+which slots are valid.
 
-### Linux (discovery mode, patched libvulkan)
+**Manual alias resolution.** When Vulkan extensions are promoted to core, the
+extension function gets a new name (e.g. `vkCmdDrawIndirectCountKHR` became
+`vkCmdDrawIndirectCount` in VK 1.2). Some drivers only recognize the core
+name, others only the extension name. Because each name is loaded
+independently, one slot may be populated and the other NULL. Users must
+manually copy pointers between the aliased slots — something the ANGLE project
+has [documented](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/src/common/vulkan/vk_headers.h)
+as a recurring maintenance task.
 
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 128432          | 642.16            |
-| Load device functions   | 200 | 358393          | 1791.96            |
-| Teardown and full init  | 20 | 61970          | 3098.5            |
+### Gloam's two loading modes
 
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2225          | 11.125            |
-| Load device functions   | 200 | 15258          | 76.29            |
-| Teardown and full init  | 20 | 22553          | 1127.65            |
+Gloam offers two Vulkan loading workflows to address these trade-offs:
 
-[Gloam](https://github.com/tycho/gloam) (discovery mode)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2467          | 12.335            |
-| Load device functions   | 200 | 16088          | 80.44            |
-| Teardown and full init  | 20 | 22800          | 1140            |
+**Discovery mode** (`gloamLoaderLoadVulkan`) works like GLAD: it calls the
+Vulkan enumeration APIs, detects available extensions, sets presence flags, and
+loads the corresponding PFNs. This gives you the same extension-query
+capability as GLAD, at the same cost.
 
-[Volk](https://github.com/zeux/volk)
-| Task                 | Iterations | Total Time (µs) | Average Time (µs) |
-|----------------------|------------|-----------------|-------------------|
-| Load instance functions | 200 | 2304          | 11.52            |
-| Load device functions   | 200 | 15483          | 77.415            |
-| Teardown and full init  | 20 | 1751          | 87.55            |
+**Enabled-list mode** (`gloamVulkanInitialize` / `gloamVulkanLoadInstance` /
+`gloamVulkanLoadDevice`) takes a different approach. The caller creates their
+Vulkan instance and device however they like, then tells gloam what API version
+and extensions were actually enabled. Gloam loads only those PFNs, sets the
+corresponding presence flags, and runs alias resolution. No enumeration calls,
+no heap allocation for hash arrays, and no bogus pointers.
 
-### Analysis
+The difference is substantial. Using the Linux unpatched-libvulkan numbers:
 
-In discovery mode, Gloam's device-load and teardown numbers closely match GLAD
-(tycho) — both are around 760µs per device load and ~9900µs per teardown cycle
-with the unpatched libvulkan. The cost is dominated by
-`vkEnumerateDeviceExtensionProperties`, which the Vulkan loader implements by
-loading and querying every ICD and scanning implicit layers. Both GLAD and
-Gloam pay this cost when they discover extensions from the driver.
-
-Volk avoids this cost entirely by not doing any extension detection, which is
-why its teardown-and-reinit is so much faster (855µs vs ~9900µs). But this
-comes with a correctness trade-off: Volk blindly calls `vkGetInstanceProcAddr`
-and `vkGetDeviceProcAddr` for every function in the spec, including extensions
-that were never enabled. The Vulkan spec allows `vkGetInstanceProcAddr` to
-return non-NULL for any known command name regardless of whether the extension
-was enabled, so Volk's context can end up populated with loader trampoline
-pointers that are not safe to call. The user has no way to distinguish these
-from legitimately loaded functions without tracking their enabled extensions
-separately — which defeats the purpose of having a loader manage the dispatch
-table. Volk also does not perform alias resolution, so promoted functions (like
-`vkCmdDrawIndirectCount` in VK 1.2, aliased from `vkCmdDrawIndirectCountKHR`)
-may have one slot populated and the other NULL depending on driver behavior,
-forcing the user to manually copy pointers between slots.
-
-Gloam's enabled-list mode avoids all of these issues. Slots for functions you
-didn't enable stay NULL, which is a clean and unambiguous signal not to call
-them. Alias resolution runs automatically over the enabled set, so both the
-core and extension names work regardless of which name the driver resolves.
-
-Switching Gloam to the enabled-list mode eliminates both penalties. Compare the
-Gloam rows between the discovery and enabled-list results:
-
-| Metric (unpatched libvulkan)  | Discovery mode | Enabled-list mode | Speedup |
-|-------------------------------|---------------|-------------------|---------|
-| Load device functions (avg)   | 759.58µs      | 72.28µs           | ~10.5×  |
-| Teardown and full init (avg)  | 9909.85µs     | 146.8µs           | ~67×    |
+| Metric                        | Gloam discover | Gloam enabled-list | Speedup |
+|-------------------------------|---------------:|-------------------:|--------:|
+| Load instance functions (avg) | 4522.4µs       | 75.02µs            | ~60×    |
+| Load device functions (avg)   | 804.07µs       | 75.05µs            | ~10.7×  |
+| Teardown and full init (avg)  | 9895.55µs      | 148.55µs           | ~66×    |
 
 The device-load improvement comes from loading only the PFNs for enabled
-extensions rather than querying the driver for every function in the spec. The
-teardown improvement comes from skipping
-`vkEnumerateInstanceExtensionProperties` and
-`vkEnumerateDeviceExtensionProperties` entirely — `gloamVulkanFinalize` is just
-a conditional `dlclose` and a `memset`, and `gloamVulkanInitialize` only loads
-the handful of global-scope bootstrap functions needed to create an instance.
+features and extensions rather than the entire spec. The teardown improvement
+comes from skipping `vkEnumerateInstanceExtensionProperties` and
+`vkEnumerateDeviceExtensionProperties` entirely — `gloamVulkanFinalize` is
+just a conditional `dlclose` and a `memset`, and `gloamVulkanInitialize` only
+loads the handful of global-scope bootstrap functions needed to create an
+instance.
 
-Instance loading barely changes (~71µs to ~73µs) because the discovery path was
-already cheap at the instance level — `vkEnumerateInstanceExtensionProperties`
-is much less expensive than the device variant, and the number of
-instance-scope PFNs for VK 1.3 core is similar regardless of mode.
+Enabled-list mode also provides guarantees that neither Volk nor discovery mode
+can: slots for functions you didn't enable stay NULL (clean and unambiguous),
+and alias resolution runs automatically so both the core and extension names
+work regardless of which name the driver resolves.
 
-## Why is Gloam so fast compared to Volk?
 
-Even comparing the enabled-list numbers against Volk, Gloam is substantially
-faster in every category.
+### Why Gloam's enabled-list mode is faster than Volk
 
-**Volk loads everything.** When you call `volkLoadInstanceOnly(instance)`, Volk
-calls `vkGetInstanceProcAddr` for every instance-scope function in the entire
-Vulkan spec — hundreds of entry points spanning all versions and all
-extensions, regardless of whether they're relevant to your application.
-`volkLoadDevice(device)` does the same for every device-scope function via
-`vkGetDeviceProcAddr`.
+Beyond the design trade-offs discussed above, the enabled-list numbers are
+also faster than Volk across the board.
 
-**Gloam loads only what you enabled.** Because the caller tells gloam the API
-version and the list of enabled extensions, gloam knows exactly which PFN slots
-need to be populated. A `gloamVulkanLoadDevice` call for a VK 1.3 device with
-no device extensions only loads the device-scope functions from VK 1.0 through
-1.3 core — a fraction of the full spec.
+**Volk loads everything.** `volkLoadInstanceOnly(instance)` calls
+`vkGetInstanceProcAddr` for every instance-scope function that compiles in on
+the target platform — hundreds of entry points spanning all compiled-in
+versions and extensions, regardless of what the application actually enabled.
 
-This explains the device-loading numbers in particular. On Linux with a stock
-libvulkan, Gloam loads device functions in ~72µs while Volk takes ~750µs
-— a 10× difference. With the patched xxhash-based libvulkan that makes each
-individual proc-addr lookup cheaper, the gap persists: Gloam at ~7.5µs vs Volk
-at ~109µs, roughly 14×. The per-lookup cost dropped for both, but Volk still
-has to do it for hundreds of functions the application never asked for.
+**Gloam loads only what you enabled.** A `gloamVulkanLoadDevice` call for a VK
+1.3 device with no device extensions only loads the device-scope functions from
+VK 1.0 through 1.3 core — a fraction of the full spec.
 
-The teardown-and-reinitialize benchmark tells the same story. Gloam's
-`gloamVulkanFinalize` is a conditional `dlclose` plus a `memset`, and the
-subsequent `gloamVulkanInitialize` only loads the handful of global-scope
-bootstrap functions. Volk's `volkFinalize` zeros every slot by calling a dummy
-proc-addr that always returns NULL, and reinitialization reloads the full set.
-On Linux: Gloam at ~147µs vs Volk at ~853µs for the full cycle.
+Using the Linux numbers:
 
-The instance-loading numbers are closer (Gloam ~73µs vs Volk ~86µs) because
-most Vulkan extensions add device-scope functions, not instance-scope ones. The
-"load everything" penalty is smaller at the instance level since the VK 1.3
-core instance functions are already a large proportion of the total
-instance-scope spec.
+| Metric                        | Gloam enabled | Volk    | Speedup |
+|-------------------------------|-------------:|--------:|--------:|
+| Load device (avg, unpatched)  | 75.05µs      | 776.67µs | ~10×   |
+| Load device (avg, patched)    | 7.86µs       | 152.97µs | ~19×   |
+| Teardown+init (avg, unpatched)| 148.55µs     | 875.75µs | ~6×    |
+| Teardown+init (avg, patched)  | 22.15µs      | 163.05µs | ~7×    |
 
-There's also a secondary effect: gloam's enabled-path dispatch doesn't use
-a callback. It calls `vkGetInstanceProcAddr` and `vkGetDeviceProcAddr` directly
-from the context struct, avoiding the function-pointer indirection that
-callback-based loaders pay on every lookup.
+The gap widens with the patched libvulkan because the per-lookup cost drops for
+both loaders, but Volk still has to make hundreds of lookups for functions the
+application never asked for. Once the individual lookups are cheap, the *count*
+of lookups dominates — and that's where loading only what you need wins
+decisively.
 
+There's also a secondary effect: Gloam's enabled-path dispatch doesn't use a
+callback at all. It calls `vkGetInstanceProcAddr` and `vkGetDeviceProcAddr`
+directly from the context struct, avoiding the function-pointer indirection
+that callback-based loaders pay on every lookup.
+
+
+## libvulkan is actually just a strcmp() benchmark
+
+This section is about the Vulkan loader library itself (`libvulkan.so` /
+`vulkan-1.dll`) — the shared infrastructure that sits between every API loader
+and the ICD. The data above shows that libvulkan is the single largest
+contributor to function-loading latency for *every* loader tested, and the
+problem gets worse with every Vulkan release.
+
+### The problem
+
+When any loader calls `vkGetInstanceProcAddr(instance, "vkCmdDrawIndirect")`,
+the Vulkan loader library resolves the name to a function pointer. The current
+implementation does this with a linear chain of `strcmp()` calls against a
+table of known function names. For the 400+ function names in a modern Vulkan
+build, this means:
+
+* Hundreds of `strcmp()` calls per lookup in the worst case.
+* Each `strcmp()` touches the name string and the candidate entry — cold memory
+  on the first access, and still cache-unfriendly on repeated lookups because
+  the access pattern doesn't match the table layout.
+* Branch predictor misses on nearly every comparison, because the comparison
+  order (sorted by name) has no correlation with the call order.
+* The cost scales linearly with the size of the spec. Every new Vulkan release
+  adds more extensions and more function names, making every lookup slower for
+  every application.
+
+This is why the "unpatched" numbers for every loader in the results above are
+so much higher than the "patched" numbers. The per-lookup cost inside
+libvulkan dominates the total loading time — it dwarfs anything the API loader
+itself is doing.
+
+On embedded and mobile devices, this problem is compounded: weaker CPUs, slower
+memory, smaller caches, and less capable branch predictors all amplify the cost
+of a `strcmp()`-heavy inner loop.
+
+### The fix
+
+The patch replaces each `strcmp()` with a 64-bit integer comparison against a
+precomputed XXH3 hash constant. The existing if-chain structure is unchanged
+— the incoming function name is hashed once at the top of the lookup, and then
+each branch compares the hash against a build-time constant instead of calling
+`strcmp()`.
+
+The improvement comes from the comparison itself. `strcmp()` is a loop: each
+byte is a branch ("equal so far? keep going"), and the branch predictor has no
+useful pattern to work with because the point of divergence changes depending
+on which names are being compared. Looking up `vkCmdDrawIndirect` after
+`vkCmdDrawIndexed` means the first 10 bytes all match — the predictor learns
+"keep going" — and then mispredicts at the divergence point. The next lookup
+against a different name diverges at a different position, and the predictor is
+wrong again. With hundreds of lookups per load call, this generates a steady
+stream of mispredicts in a tight inner loop.
+
+The hash comparison replaces all of that with a single 64-bit
+compare-and-branch per candidate. The predictor only needs to learn "not this
+one" (not-taken), which it gets right almost every time since only one branch
+in the chain will match. One predictable branch per candidate versus a loop of
+unpredictable branches per candidate — that's where the 5–10× comes from.
+
+The patch is available
+[here](https://github.com/tycho/vk-api-loader-shootout/blob/master/experiments/0001-use-xxhash-for-function-name-lookups.patch).
+
+### Impact
+
+Every loader benefits. The following table shows the speedup from the patched
+libvulkan on Linux, holding everything else constant:
+
+| Loader                | Metric                       | Unpatched   | Patched    | Speedup |
+|-----------------------|------------------------------|------------:|-----------:|--------:|
+| GLAD (dav1dde)        | Load device functions (avg)  | 7081.48µs   | 1787.95µs  | ~4×     |
+| GLAD (dav1dde)        | Teardown and full init (avg) | 16437µs     | 3086.5µs   | ~5×     |
+| GLAD (tycho)          | Load device functions (avg)  | 738.21µs    | 78.29µs    | ~9×     |
+| GLAD (tycho)          | Teardown and full init (avg) | 9829.55µs   | 1165.85µs  | ~8×     |
+| Gloam (discover)      | Load device functions (avg)  | 804.07µs    | 105.17µs   | ~8×     |
+| Gloam (discover)      | Teardown and full init (avg) | 9895.55µs   | 1163.7µs   | ~9×     |
+| Gloam (enabled-list)  | Load device functions (avg)  | 75.05µs     | 7.86µs     | ~10×    |
+| Gloam (enabled-list)  | Teardown and full init (avg) | 148.55µs    | 22.15µs    | ~7×     |
+| Volk                  | Load device functions (avg)  | 776.67µs    | 152.97µs   | ~5×     |
+| Volk                  | Teardown and full init (avg) | 875.75µs    | 163.05µs   | ~5×     |
+
+The improvement is universal and significant. Even the fastest loader (Gloam
+enabled-list), which makes the fewest calls into libvulkan, still sees a 7–10×
+speedup from the patched loader. Loaders that make more calls see
+proportionally larger absolute savings, because every call was expensive and
+now isn't.
+
+Vulkan is increasingly deployed on mobile, embedded, and XR platforms where
+startup latency directly impacts user experience. A hash-based lookup in
+libvulkan would benefit every Vulkan application on every platform, regardless
+of which API loader or loading strategy they use.
