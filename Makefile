@@ -14,16 +14,6 @@ CPU_BRAND := $(shell scripts/get_cpu_brand.sh)
 # Common flags
 DEBUGFLAGS := -g0
 
-ifeq ($(uname_M),arm64)
-ARCHFLAGS := -mcpu=native
-else
-ARCHFLAGS := -march=x86-64-v2 -mtune=znver3
-endif
-
-OPTFLAGS := -O2 -fno-unroll-loops $(ARCHFLAGS) $(DEBUGFLAGS)
-
-LDFLAGS := -s
-
 # Enable symbols
 ifdef DEBUG
 ifeq ($(uname_S),Darwin)
@@ -33,6 +23,16 @@ STRIP := :
 endif
 DEBUGFLAGS := -g3
 endif
+
+ifeq ($(uname_M),arm64)
+ARCHFLAGS := -mcpu=native
+else
+ARCHFLAGS := -march=x86-64-v2 -mtune=znver3
+endif
+
+OPTFLAGS := -O2 -fno-unroll-loops $(ARCHFLAGS) $(DEBUGFLAGS)
+
+LDFLAGS := -s
 
 # For C language only
 CFLAGS   := -std=c17
@@ -44,6 +44,8 @@ CXXFLAGS := -std=c++20
 #CXXFLAGS += -stdlib=libc++
 #endif
 
+DEPFLAGS = -MMD -MP -MF $(@:.o=.d)
+
 VOLK_VERSION := $(shell cd extern/volk && git describe --tags | sed 's/^vulkan-sdk-//g;s/^v//g')
 XXHASH_VERSION := $(shell cd extern/xxHash && git describe --tags | sed 's/^v//')
 VK_HEADERS_VERSION := $(shell cd extern/Vulkan-Headers && git describe --tags | sed 's/^v//')
@@ -54,6 +56,11 @@ GLAD_DAV1DDE_VERSION := $(shell cd extern/glad-dav1dde && git describe --tags | 
 CC_VERSION := $(shell $(CC) -dumpversion)
 CXX_VERSION := $(shell $(CXX) -dumpversion)
 
+XXHASH_DEP := extern/xxHash/xxhash.h
+XXHASH_INC := -Iextern/xxHash
+
+BINS :=
+
 all: run
 
 clean:
@@ -61,6 +68,7 @@ clean:
 	rm -rf bin/test-*
 	rm -f obj/loader-*.o
 	rm -f obj/main-*.o
+	rm -f obj/*.d
 
 distclean: clean
 	rm -rf generated/*
@@ -128,36 +136,64 @@ run: build
 	@vulkaninfo --summary | grep -A9999 '^Devices:$$'
 	@echo "\`\`\`"
 
-build: bin/test-volk bin/test-glad-dav1dde bin/test-glad-tycho bin/test-gloam-discover bin/test-gloam
-
 .PHONY: all clean distclean run build
 
+# $(1) = target name (e.g. volk, glad-tycho, gloam)
+# $(2) = loader source file
+# $(3) = loader include flags
+# $(4) = C++ define (e.g. USE_VOLK)
+# $(5) = main.cpp include flags
+# $(6) = extra prerequisites (e.g. extern/xxHash/xxhash.h)
+define build_test
+BINS += bin/test-$(1)
 
-bin/test-volk: src/main.cpp extern/volk/volk.c .cflags
-	$(CC) -c -o obj/loader-volk.o $(OPTFLAGS) $(CFLAGS) -Iextern/volk -Iextern/Vulkan-Headers/include extern/volk/volk.c
-	$(CXX) -c -o obj/main-volk.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_VOLK -Iextern/volk -Iextern/Vulkan-Headers/include src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-volk.o obj/main-volk.o
-	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
-bin/test-glad-dav1dde: src/main.cpp generated/glad-dav1dde/src/vulkan.c .cflags
-	$(CC) -c -o obj/loader-glad-dav1dde.o $(OPTFLAGS) $(CFLAGS) -Igenerated/glad-dav1dde/include generated/glad-dav1dde/src/vulkan.c
-	$(CXX) -c -o obj/main-glad-dav1dde.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Igenerated/glad-dav1dde/include src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-dav1dde.o obj/main-glad-dav1dde.o
-	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
-bin/test-gloam-discover: src/main.cpp generated/gloam/src/vk.c extern/xxHash/xxhash.h .cflags
-	$(CC) -c -o obj/loader-gloam-discover.o $(OPTFLAGS) $(CFLAGS) -Iextern/xxHash -Igenerated/gloam/include generated/gloam/src/vk.c
-	$(CXX) -c -o obj/main-gloam-discover.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLOAM_DISCOVER -Igenerated/gloam/include src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-gloam-discover.o obj/main-gloam-discover.o
-	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
-bin/test-gloam: src/main.cpp generated/gloam/src/vk.c extern/xxHash/xxhash.h .cflags
-	$(CC) -c -o obj/loader-gloam.o $(OPTFLAGS) $(CFLAGS) -Iextern/xxHash -Igenerated/gloam/include generated/gloam/src/vk.c
-	$(CXX) -c -o obj/main-gloam.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLOAM -Igenerated/gloam/include src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-gloam.o obj/main-gloam.o
-	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
-bin/test-glad-tycho: src/main.cpp generated/glad-tycho/src/vulkan.c extern/xxHash/xxhash.h .cflags
-	$(CC) -c -o obj/loader-glad-tycho.o $(OPTFLAGS) $(CFLAGS) -Iextern/xxHash -Igenerated/glad-tycho/include generated/glad-tycho/src/vulkan.c
-	$(CXX) -c -o obj/main-glad-tycho.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Iextern/xxHash -Igenerated/glad-tycho/include src/main.cpp
-	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-tycho.o obj/main-glad-tycho.o
-	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
+obj/loader-$(1).o: $(2) $(6) .cflags
+	$$(CC) -c -o $$@ $$(OPTFLAGS) $$(CFLAGS) $$(DEPFLAGS) $(3) $$<
+
+obj/main-$(1).o: src/main.cpp $(2) $(6) .cflags
+	$$(CXX) -c -o $$@ $$(OPTFLAGS) $$(CXXFLAGS) $$(DEPFLAGS) -D$(4) $(5) $$<
+
+bin/test-$(1): obj/loader-$(1).o obj/main-$(1).o
+	$$(LINK) -o $$@ $$(OPTFLAGS) $$(LDFLAGS) $$^
+	[[ -f $$@.exe ]] && $$(STRIP) $$@.exe || $$(STRIP) $$@
+endef
+
+$(eval $(call build_test,volk,\
+  extern/volk/volk.c,\
+  -Iextern/volk -Iextern/Vulkan-Headers/include,\
+  USE_VOLK,\
+  -Iextern/volk -Iextern/Vulkan-Headers/include,\
+))
+
+$(eval $(call build_test,glad-dav1dde,\
+  generated/glad-dav1dde/src/vulkan.c,\
+  -Igenerated/glad-dav1dde/include,\
+  USE_GLAD,\
+  -Igenerated/glad-dav1dde/include,\
+))
+
+$(eval $(call build_test,glad-tycho,\
+  generated/glad-tycho/src/vulkan.c,\
+  $(XXHASH_INC) -Igenerated/glad-tycho/include,\
+  USE_GLAD,\
+  $(XXHASH_INC) -Igenerated/glad-tycho/include,\
+  $(XXHASH_DEP)))
+
+$(eval $(call build_test,gloam-discover,\
+  generated/gloam/src/vk.c,\
+  $(XXHASH_INC) -Igenerated/gloam/include,\
+  USE_GLOAM_DISCOVER,\
+  -Igenerated/gloam/include,\
+  $(XXHASH_DEP)))
+
+$(eval $(call build_test,gloam,\
+  generated/gloam/src/vk.c,\
+  $(XXHASH_INC) -Igenerated/gloam/include,\
+  USE_GLOAM,\
+  -Igenerated/gloam/include,\
+  $(XXHASH_DEP)))
+
+build: $(BINS)
 
 gen-glad-dav1dde:
 	# This is disabled because upstream Glad chokes on current Vulkan XML files
@@ -189,5 +225,7 @@ TRACK_CFLAGS = $(subst ','\'',$(CC) $(CXX) $(OPTFLAGS) $(CFLAGS) $(CXXFLAGS) $(u
 	fi
 
 .PHONY: .force-cflags
+
+-include $(wildcard obj/*.d)
 
 endif
