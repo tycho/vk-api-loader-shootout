@@ -17,11 +17,17 @@
 #include <volk.h>
 #elif defined(USE_GLAD)
 #include <glad/vulkan.h>
-#elif defined(USE_GLOAM)
+#elif defined(USE_GLOAM) || defined(USE_GLOAM_DISCOVER)
 #include <gloam/vk.h>
-#else
-#error "Must define either USE_VOLK, USE_GLOAM, or USE_GLAD for this to compile"
 #endif
+
+#if ((defined(USE_VOLK) ? 1 : 0) + \
+     (defined(USE_GLAD) ? 1 : 0) + \
+     (defined(USE_GLOAM) ? 1 : 0) + \
+     (defined(USE_GLOAM_DISCOVER) ? 1 : 0)) != 1
+#error "Must define exactly one of (USE_VOLK, USE_GLOAM, USE_GLOAM_DISCOVER, USE_GLAD) for this to compile"
+#endif
+
 
 // ARGH, Microsoft!
 #ifndef __has_attribute
@@ -119,6 +125,12 @@ static bool loader_init()
         std::cerr << "Failed to initialize GLAD!" << std::endl;
         return false;
     }
+#elif defined(USE_GLOAM_DISCOVER)
+    int vk_version = gloamLoaderLoadVulkan(NULL, NULL, NULL);
+    if (!vk_version) {
+        std::cerr << "Failed to initialize gloam!" << std::endl;
+        return false;
+    }
 #elif defined(USE_GLOAM)
     int vk_version = gloamVulkanInitialize(libvulkan_handle);
     if (!vk_version) {
@@ -138,6 +150,18 @@ static bool loader_load_instance(VkInstance instance, uint32_t apiVersion, uint3
     int vk_version = gladLoaderLoadVulkan(instance, NULL, NULL);
     if (!vk_version) {
         std::cerr << "GLAD failed to load VK instance functions!" << std::endl;
+        return false;
+    }
+#elif defined(USE_GLOAM_DISCOVER)
+    // Gloam has a marker in the discover API to indicate whether it's already
+    // loaded extensions for instance/device. We need to reset that marker here
+    // since we're trying to measure the cost of that path. In normal usage,
+    // you'd only load instance/device functions once, though.
+    gloam_vk_context.vk_found_instance_exts = 0;
+
+    int vk_version = gloamLoaderLoadVulkan(instance, NULL, NULL);
+    if (!vk_version) {
+        std::cerr << "gloam failed to load VK instance functions!" << std::endl;
         return false;
     }
 #elif defined(USE_GLOAM)
@@ -161,6 +185,18 @@ static bool loader_load_device(VkInstance instance, VkPhysicalDevice physicalDev
         std::cerr << "GLAD failed to load VK device functions!" << std::endl;
         return false;
     }
+#elif defined(USE_GLOAM_DISCOVER)
+    // Gloam has a marker in the discover API to indicate whether it's already
+    // loaded extensions for instance/device. We need to reset that marker here
+    // since we're trying to measure the cost of that path. In normal usage,
+    // you'd only load instance/device functions once, though.
+    gloam_vk_context.vk_found_device_exts = 0;
+
+    int vk_version = gloamLoaderLoadVulkan(instance, physicalDevice, device);
+    if (!vk_version) {
+        std::cerr << "gloam failed to load VK device functions!" << std::endl;
+        return false;
+    }
 #elif defined(USE_GLOAM)
     int vk_version = gloamVulkanLoadDevice(device, physicalDevice, nEnabledExtensions, ppEnabledExtensions);
     if (!vk_version) {
@@ -178,6 +214,8 @@ static bool loader_destroy()
     volkFinalize();
 #elif defined(USE_GLAD)
     gladLoaderUnloadVulkan();
+#elif defined(USE_GLOAM_DISCOVER)
+    gloamLoaderUnloadVulkan();
 #elif defined(USE_GLOAM)
     gloamVulkanFinalize();
 #endif
@@ -217,6 +255,8 @@ int main() {
     instanceCreateInfo.pApplicationInfo = &appInfo;
 #if defined(GLAD_VK_KHR_portability_enumeration)
     supportsPortabilityEnumeration = GLAD_VK_KHR_portability_enumeration;
+#elif defined(GLOAM_VK_KHR_portability_enumeration) && defined(USE_GLOAM_DISCOVER)
+    supportsPortabilityEnumeration = GLOAM_VK_KHR_portability_enumeration;
 #else
     {
         uint32_t count = 0;

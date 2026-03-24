@@ -99,7 +99,10 @@ run: build
 	@echo "[GLAD (tycho)](https://github.com/tycho/glad)"
 	@(cd bin; ./test-glad-tycho) && sleep 1
 	@echo
-	@echo "[Gloam](https://github.com/tycho/gloam)"
+	@echo "[Gloam (discover API)](https://github.com/tycho/gloam)"
+	@(cd bin; ./test-gloam-discover) && sleep 1
+	@echo
+	@echo "[Gloam (enabled-list API)](https://github.com/tycho/gloam)"
 	@(cd bin; ./test-gloam) && sleep 1
 	@echo
 	@echo "[Volk](https://github.com/zeux/volk)"
@@ -125,7 +128,7 @@ run: build
 	@vulkaninfo --summary | grep -A9999 '^Devices:$$'
 	@echo "\`\`\`"
 
-build: bin/test-volk bin/test-glad-dav1dde bin/test-glad-tycho bin/test-gloam
+build: bin/test-volk bin/test-glad-dav1dde bin/test-glad-tycho bin/test-gloam-discover bin/test-gloam
 
 .PHONY: all clean distclean run build
 
@@ -139,6 +142,11 @@ bin/test-glad-dav1dde: src/main.cpp generated/glad-dav1dde/src/vulkan.c .cflags
 	$(CC) -c -o obj/loader-glad-dav1dde.o $(OPTFLAGS) $(CFLAGS) -Igenerated/glad-dav1dde/include generated/glad-dav1dde/src/vulkan.c
 	$(CXX) -c -o obj/main-glad-dav1dde.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLAD -Igenerated/glad-dav1dde/include src/main.cpp
 	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-glad-dav1dde.o obj/main-glad-dav1dde.o
+	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
+bin/test-gloam-discover: src/main.cpp generated/gloam/src/vk.c extern/xxHash/xxhash.h .cflags
+	$(CC) -c -o obj/loader-gloam-discover.o $(OPTFLAGS) $(CFLAGS) -Iextern/xxHash -Igenerated/gloam/include generated/gloam/src/vk.c
+	$(CXX) -c -o obj/main-gloam-discover.o $(OPTFLAGS) $(CXXFLAGS) -DUSE_GLOAM_DISCOVER -Igenerated/gloam/include src/main.cpp
+	$(LINK) -o $@ $(OPTFLAGS) $(LDFLAGS) obj/loader-gloam-discover.o obj/main-gloam-discover.o
 	[[ -f $@.exe ]] && $(STRIP) $@.exe || $(STRIP) $@
 bin/test-gloam: src/main.cpp generated/gloam/src/vk.c extern/xxHash/xxhash.h .cflags
 	$(CC) -c -o obj/loader-gloam.o $(OPTFLAGS) $(CFLAGS) -Iextern/xxHash -Igenerated/gloam/include generated/gloam/src/vk.c
