@@ -1,4 +1,4 @@
-From a971e04bb1b83436aae2c9c50e04ed4d0e03cb59 Mon Sep 17 00:00:00 2001
+From 334dab5cc6601a1457b163e238e3fa53ae2d05ab Mon Sep 17 00:00:00 2001
 From: Steven Noonan <steven@uplinklabs.net>
 Date: Sun, 21 Sep 2025 21:02:55 -0700
 Subject: [PATCH 2/2] use ICD cache instead of rescanning ICDs
@@ -9,7 +9,7 @@ Signed-off-by: Steven Noonan <steven@uplinklabs.net>
  1 file changed, 1 insertion(+), 11 deletions(-)
 
 diff --git a/loader/loader.c b/loader/loader.c
-index e8a799b61..d07a68e89 100644
+index acaa67dff..f3306a3bb 100644
 --- a/loader/loader.c
 +++ b/loader/loader.c
 @@ -7565,14 +7565,12 @@ VKAPI_ATTR VkResult VKAPI_CALL terminator_EnumerateInstanceExtensionProperties(c
@@ -56,5 +56,5 @@ index e8a799b61..d07a68e89 100644
      loader_delete_layer_list_and_properties(NULL, &instance_layers);
      return res;
 -- 
-2.53.0
+2.51.0
 
