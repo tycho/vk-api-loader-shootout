@@ -194,6 +194,20 @@ $(eval $(call build_test,gloam,\
   -Igenerated/gloam/include,\
   $(XXHASH_DEP)))
 
+vkheaders:
+	mkdir -p build
+	rm -rf build/vkheaders
+	cmake -S extern/Vulkan-Headers -B build/vkheaders -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$(PWD)/prefix -G Ninja
+	cmake --build build/vkheaders
+	cmake --install build/vkheaders
+
+libvulkan:
+	mkdir -p build
+	rm -rf build/libvulkan
+	cmake -S extern/Vulkan-Loader -B build/libvulkan -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-I$(PWD)/prefix/include" -DCMAKE_C_FLAGS="-I$(PWD)/prefix/include" -DVULKAN_HEADERS_INSTALL_DIR=$(PWD)/prefix -DCMAKE_INSTALL_PREFIX=$(PWD)/prefix -G Ninja
+	cmake --build build/libvulkan
+	cmake --install build/libvulkan
+
 build: $(BINS)
 
 gen-glad-dav1dde:

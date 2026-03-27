@@ -19,3 +19,6 @@
 [submodule "extern/xxHash"]
 	path = extern/xxHash
 	url = https://github.com/Cyan4973/xxHash
+[submodule "extern/Vulkan-Loader"]
+	path = extern/Vulkan-Loader
+	url = https://github.com/tycho/Vulkan-Loader.git
