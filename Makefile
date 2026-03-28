@@ -71,6 +71,7 @@ clean:
 	rm -f obj/*.d
 
 distclean: clean
+	(cd extern/gloam; cargo clean)
 	rm -rf generated/*
 	rm -rf venv/glad-*
 
