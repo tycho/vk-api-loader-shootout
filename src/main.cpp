@@ -47,8 +47,8 @@
 
 
 // Number of repetitions for timing
-constexpr int OUTER_COUNT = 5;
-constexpr int INNER_COUNT = 200;
+constexpr int OUTER_COUNT = 10;
+constexpr int INNER_COUNT = 300;
 constexpr int INNER_COUNT_REINIT = INNER_COUNT / 10;
 
 // We keep this around to prevent libvulkan from being unloaded and reloaded
@@ -118,7 +118,10 @@ XOM_NOINLINE
 static bool loader_init()
 {
 #if defined(USE_VOLK)
-    volkInitializeCustom(pfnVkGetInstanceProcAddr);
+    if (pfnVkGetInstanceProcAddr)
+        volkInitializeCustom(pfnVkGetInstanceProcAddr);
+    else
+        volkInitialize();
 #elif defined(USE_GLAD)
     int vk_version = gladLoaderLoadVulkan(NULL, NULL, NULL);
     if (!vk_version) {
@@ -220,6 +223,110 @@ static bool loader_destroy()
     gloamVulkanFinalize();
 #endif
     return true;
+}
+
+static int full_vulkan_context_and_teardown()
+{
+    if (!loader_init())
+        return -1;
+
+    VkInstance instance;
+    VkDevice device;
+    std::vector<const char *> enabledInstanceExtensions;
+    std::vector<const char *> enabledDeviceExtensions;
+    bool supportsPortabilityEnumeration = false;
+
+    // Vulkan instance creation info
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Vulkan API loader benchmark";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "No Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_3;
+
+    VkInstanceCreateInfo instanceCreateInfo{};
+    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceCreateInfo.pApplicationInfo = &appInfo;
+#if defined(GLAD_VK_KHR_portability_enumeration)
+    supportsPortabilityEnumeration = GLAD_VK_KHR_portability_enumeration;
+#elif defined(GLOAM_VK_KHR_portability_enumeration) && defined(USE_GLOAM_DISCOVER)
+    supportsPortabilityEnumeration = GLOAM_VK_KHR_portability_enumeration;
+#else
+    {
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+        std::vector<VkExtensionProperties> extensions(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
+        for (uint32_t i = 0; i < count; i++) {
+            if (strcmp(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, extensions[i].extensionName) == 0) {
+                supportsPortabilityEnumeration = true;
+            }
+        }
+    }
+#endif
+    if (supportsPortabilityEnumeration) {
+        enabledInstanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    }
+
+    instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.empty() ? nullptr : enabledInstanceExtensions.data();
+    instanceCreateInfo.enabledExtensionCount = enabledInstanceExtensions.size();
+
+    if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
+        std::cerr << "Failed to create Vulkan instance!" << std::endl;
+        return -1;
+    }
+
+    // Load instance functions
+    if (!loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames))
+        return -1;
+
+    // Select physical device
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    if (deviceCount == 0) {
+        std::cerr << "Failed to find GPUs with Vulkan support!" << std::endl;
+        vkDestroyInstance(instance, nullptr);
+        return -1;
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+    VkPhysicalDevice &physicalDevice = devices[0];
+
+    // Device creation info
+    float queuePriority = 1.0f;
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = 0;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkDeviceCreateInfo deviceCreateInfo{};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+    deviceCreateInfo.ppEnabledExtensionNames = enabledDeviceExtensions.empty() ? nullptr : enabledDeviceExtensions.data();
+    deviceCreateInfo.enabledExtensionCount = enabledDeviceExtensions.size();
+
+    if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
+        std::cerr << "Failed to create logical device!" << std::endl;
+        vkDestroyInstance(instance, nullptr);
+        return -1;
+    }
+
+    // Load device functions
+    if (!loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames))
+        return -1;
+
+    // Cleanup
+    vkDestroyDevice(device, nullptr);
+    vkDestroyInstance(instance, nullptr);
+    loader_destroy();
+
+    return 0;
 }
 
 int main() {
@@ -348,8 +455,8 @@ int main() {
         bestDeviceDuration = std::min(bestDeviceDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
 
-    // Benchmark full teardown and initialization
-    std::chrono::microseconds bestFullDuration = std::chrono::microseconds::max();
+    // Benchmark full teardown and initialization of API loader
+    std::chrono::microseconds bestReDetect = std::chrono::microseconds::max();
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT_REINIT; ++i) {
@@ -359,13 +466,37 @@ int main() {
             loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames);
         }
         auto end = std::chrono::high_resolution_clock::now();
-        bestFullDuration = std::min(bestFullDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
+        bestReDetect = std::min(bestReDetect, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
 
     // Cleanup
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
     loader_destroy();
+
+    // Benchmark full teardown and initialization of Vulkan context, with libvulkan staying resident
+    std::chrono::microseconds bestContextResidentLibvulkan = std::chrono::microseconds::max();
+    for (int i = 0; i < OUTER_COUNT; ++i) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < INNER_COUNT_REINIT; ++i) {
+            full_vulkan_context_and_teardown();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        bestContextResidentLibvulkan = std::min(bestContextResidentLibvulkan, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
+    }
+
+    close_libvulkan();
+
+    // Benchmark full teardown and initialization of Vulkan context, without libvulkan staying resident
+    std::chrono::microseconds bestContextNoLibvulkan = std::chrono::microseconds::max();
+    for (int i = 0; i < OUTER_COUNT; ++i) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < INNER_COUNT_REINIT; ++i) {
+            full_vulkan_context_and_teardown();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        bestContextNoLibvulkan = std::min(bestContextNoLibvulkan, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
+    }
 
     // Output results as a Markdown table
     std::cout << "| Task                 | Iterations | Total Time (µs) | Average Time (µs) |\n";
@@ -374,10 +505,12 @@ int main() {
         << (bestInstanceDuration.count() / static_cast<double>(INNER_COUNT)) << "            |\n";
     std::cout << "| Load device functions   | " << INNER_COUNT << " | " << bestDeviceDuration.count() << "          | "
         << (bestDeviceDuration.count() / static_cast<double>(INNER_COUNT)) << "            |\n";
-    std::cout << "| Teardown and full init  | " << INNER_COUNT_REINIT << " | " << bestFullDuration.count() << "          | "
-        << (bestFullDuration.count() / static_cast<double>(INNER_COUNT_REINIT)) << "            |\n";
-
-    close_libvulkan();
+    std::cout << "| Init + load all functions | " << INNER_COUNT_REINIT << " | " << bestReDetect.count() << "          | "
+        << (bestReDetect.count() / static_cast<double>(INNER_COUNT_REINIT)) << "            |\n";
+    std::cout << "| Full VK context (libvulkan persistent) | " << INNER_COUNT_REINIT << " | " << bestContextResidentLibvulkan.count() << "          | "
+        << (bestContextResidentLibvulkan.count() / static_cast<double>(INNER_COUNT_REINIT)) << "            |\n";
+    std::cout << "| Full VK context (libvulkan transient) | " << INNER_COUNT_REINIT << " | " << bestContextNoLibvulkan.count() << "          | "
+        << (bestContextNoLibvulkan.count() / static_cast<double>(INNER_COUNT_REINIT)) << "            |\n";
 
     return 0;
 }
