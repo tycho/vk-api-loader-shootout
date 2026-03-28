@@ -13,6 +13,7 @@ CPU_BRAND := $(shell scripts/get_cpu_brand.sh)
 
 # Common flags
 DEBUGFLAGS := -g0
+LDFLAGS := -s
 
 # Enable symbols
 ifdef DEBUG
@@ -22,6 +23,7 @@ else
 STRIP := :
 endif
 DEBUGFLAGS := -g3
+LDFLAGS :=
 endif
 
 ifeq ($(uname_M),arm64)
@@ -31,8 +33,6 @@ ARCHFLAGS := -march=x86-64-v2 -mtune=znver3
 endif
 
 OPTFLAGS := -O2 -fno-unroll-loops $(ARCHFLAGS) $(DEBUGFLAGS)
-
-LDFLAGS := -s
 
 # For C language only
 CFLAGS   := -std=c17
@@ -215,7 +215,7 @@ generated/gloam/src/vk.c: scripts/gen-gloam.sh
 
 ifeq (,$(findstring clean,$(MAKECMDGOALS)))
 
-TRACK_CFLAGS = $(subst ','\'',$(CC) $(CXX) $(OPTFLAGS) $(CFLAGS) $(CXXFLAGS) $(uname_S))
+TRACK_CFLAGS = $(subst ','\'',$(CC) $(CXX) $(OPTFLAGS) $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(uname_S))
 
 .cflags: .force-cflags
 	@FLAGS='$(TRACK_CFLAGS)'; \
