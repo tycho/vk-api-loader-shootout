@@ -98,9 +98,9 @@ run: build
 	@echo
 	@echo "| Variable     | Value         |"
 	@echo "|--------------|---------------|"
-	@echo "| \`OPTFLAGS\` | \`$(OPTFLAGS)\` |"
-	@echo "| \`CFLAGS\`   | \`$(CFLAGS)\` |"
-	@echo "| \`CXXFLAGS\` | \`$(CXXFLAGS)\` |"
+	@echo "| \`OPTFLAGS\`   | \`$(OPTFLAGS)\` |"
+	@echo "| \`CFLAGS\`     | \`$(CFLAGS)\` |"
+	@echo "| \`CXXFLAGS\`   | \`$(CXXFLAGS)\` |"
 	@echo
 	@echo "[GLAD (dav1dde)](https://github.com/Dav1dde/glad)"
 	@(cd bin; ./test-glad-dav1dde) && sleep 1

@@ -329,6 +329,15 @@ static int full_vulkan_context_and_teardown()
     return 0;
 }
 
+static void print_result(std::string_view title, uint64_t iterations, std::chrono::microseconds duration)
+{
+    std::cout << "| " <<
+        std::setw(42) << std::left << title << " | " <<
+        std::setw(10) << std::right << iterations << " | " <<
+        std::setw(15) << std::right << duration.count() << " | " <<
+        std::setw(17) << std::right << std::fixed << std::setprecision(2) << (duration.count() / static_cast<double>(iterations)) << " |\n";
+}
+
 int main() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
@@ -499,18 +508,13 @@ int main() {
     }
 
     // Output results as a Markdown table
-    std::cout << "| Task                 | Iterations | Total Time (µs) | Average Time (µs) |\n";
-    std::cout << "|----------------------|------------|-----------------|-------------------|\n";
-    std::cout << "| Load instance functions | " << INNER_COUNT << " | " << bestInstanceDuration.count() << "          | "
-        << (bestInstanceDuration.count() / static_cast<double>(INNER_COUNT)) << "            |\n";
-    std::cout << "| Load device functions   | " << INNER_COUNT << " | " << bestDeviceDuration.count() << "          | "
-        << (bestDeviceDuration.count() / static_cast<double>(INNER_COUNT)) << "            |\n";
-    std::cout << "| Init + load all functions | " << INNER_COUNT_REINIT << " | " << bestReDetect.count() << "          | "
-        << (bestReDetect.count() / static_cast<double>(INNER_COUNT_REINIT)) << "            |\n";
-    std::cout << "| Full VK context (libvulkan persistent) | " << INNER_COUNT_REINIT << " | " << bestContextResidentLibvulkan.count() << "          | "
-        << (bestContextResidentLibvulkan.count() / static_cast<double>(INNER_COUNT_REINIT)) << "            |\n";
-    std::cout << "| Full VK context (libvulkan transient) | " << INNER_COUNT_REINIT << " | " << bestContextNoLibvulkan.count() << "          | "
-        << (bestContextNoLibvulkan.count() / static_cast<double>(INNER_COUNT_REINIT)) << "            |\n";
+    std::cout << "| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |\n";
+    std::cout << "|--------------------------------------------|------------|-----------------|-------------------|\n";
+    print_result("Load instance functions", INNER_COUNT, bestInstanceDuration);
+    print_result("Load device functions", INNER_COUNT, bestDeviceDuration);
+    print_result("Init + load all functions", INNER_COUNT_REINIT, bestReDetect);
+    print_result("Full VK context (libvulkan persistent)", INNER_COUNT_REINIT, bestContextResidentLibvulkan);
+    print_result("Full VK context (libvulkan transient)", INNER_COUNT_REINIT, bestContextNoLibvulkan);
 
     return 0;
 }
