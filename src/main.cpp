@@ -226,10 +226,10 @@ static bool loader_destroy()
     return true;
 }
 
-static int full_vulkan_context_and_teardown()
+static bool full_vulkan_context_and_teardown()
 {
     if (!loader_init())
-        return -1;
+        return false;
 
     VkInstance instance;
     VkDevice device;
@@ -276,12 +276,12 @@ static int full_vulkan_context_and_teardown()
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
         std::cerr << "Failed to create Vulkan instance!" << std::endl;
-        return -1;
+        return false;
     }
 
     // Load instance functions
     if (!loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames))
-        return -1;
+        return false;
 
     // Select physical device
     uint32_t deviceCount = 0;
@@ -289,7 +289,7 @@ static int full_vulkan_context_and_teardown()
     if (deviceCount == 0) {
         std::cerr << "Failed to find GPUs with Vulkan support!" << std::endl;
         vkDestroyInstance(instance, nullptr);
-        return -1;
+        return false;
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -315,19 +315,19 @@ static int full_vulkan_context_and_teardown()
     if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
         std::cerr << "Failed to create logical device!" << std::endl;
         vkDestroyInstance(instance, nullptr);
-        return -1;
+        return false;
     }
 
     // Load device functions
     if (!loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames))
-        return -1;
+        return false;
 
     // Cleanup
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
     loader_destroy();
 
-    return 0;
+    return true;
 }
 
 static void print_result(std::string_view title, uint64_t iterations, std::chrono::microseconds duration)
@@ -443,41 +443,53 @@ int main() {
     if (!loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames))
         return -1;
 
+    std::cout << "| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |\n";
+    std::cout << "|--------------------------------------------|------------|-----------------|-------------------|\n";
+
     // Benchmark loading instance functions
     std::chrono::microseconds bestInstanceDuration = std::chrono::microseconds::max();
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT; ++i) {
-            loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames);
+            if (!loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames))
+                return 1;
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestInstanceDuration = std::min(bestInstanceDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
+    print_result("Load instance functions", INNER_COUNT, bestInstanceDuration);
 
     // Benchmark loading device functions
     std::chrono::microseconds bestDeviceDuration = std::chrono::microseconds::max();
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT; ++i) {
-            loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames);
+            if (!loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames))
+                return 1;
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestDeviceDuration = std::min(bestDeviceDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
+    print_result("Load device functions", INNER_COUNT, bestDeviceDuration);
 
     // Benchmark full teardown and initialization of API loader
     std::chrono::microseconds bestReDetect = std::chrono::microseconds::max();
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT_REINIT; ++i) {
-            loader_destroy();
-            loader_init();
-            loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames);
-            loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames);
+            if (!loader_destroy())
+                return 1;
+            if (!loader_init())
+                return 1;
+            if (!loader_load_instance(instance, appInfo.apiVersion, instanceCreateInfo.enabledExtensionCount, instanceCreateInfo.ppEnabledExtensionNames))
+                return 1;
+            if (!loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames))
+                return 1;
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestReDetect = std::min(bestReDetect, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
+    print_result("Init + load all functions", INNER_COUNT_REINIT, bestReDetect);
 
     // Cleanup
     vkDestroyDevice(device, nullptr);
@@ -489,11 +501,13 @@ int main() {
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT_REINIT; ++i) {
-            full_vulkan_context_and_teardown();
+            if (!full_vulkan_context_and_teardown())
+                return 1;
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestContextResidentLibvulkan = std::min(bestContextResidentLibvulkan, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
+    print_result("Full VK context (libvulkan persistent)", INNER_COUNT_REINIT, bestContextResidentLibvulkan);
 
     close_libvulkan();
 
@@ -502,19 +516,12 @@ int main() {
     for (int i = 0; i < OUTER_COUNT; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < INNER_COUNT_REINIT; ++i) {
-            full_vulkan_context_and_teardown();
+            if (!full_vulkan_context_and_teardown())
+                return 1;
         }
         auto end = std::chrono::high_resolution_clock::now();
         bestContextNoLibvulkan = std::min(bestContextNoLibvulkan, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
-
-    // Output results as a Markdown table
-    std::cout << "| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |\n";
-    std::cout << "|--------------------------------------------|------------|-----------------|-------------------|\n";
-    print_result("Load instance functions", INNER_COUNT, bestInstanceDuration);
-    print_result("Load device functions", INNER_COUNT, bestDeviceDuration);
-    print_result("Init + load all functions", INNER_COUNT_REINIT, bestReDetect);
-    print_result("Full VK context (libvulkan persistent)", INNER_COUNT_REINIT, bestContextResidentLibvulkan);
     print_result("Full VK context (libvulkan transient)", INNER_COUNT_REINIT, bestContextNoLibvulkan);
 
     return 0;
