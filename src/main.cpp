@@ -22,6 +22,7 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
+#include <unistd.h>  // getpid()
 #endif
 
 #ifdef USE_VOLK
@@ -61,6 +62,10 @@
 constexpr int OUTER_COUNT = 10;
 constexpr int INNER_COUNT = 300;
 constexpr int INNER_COUNT_REINIT = INNER_COUNT / 10;
+
+// Number of outer iterations for --profile mode (runs long enough for
+// sampling profilers like macOS `sample` or Instruments to collect data)
+constexpr int PROFILE_OUTER_COUNT = 5000;
 
 // We keep this around to prevent libvulkan from being unloaded and reloaded
 // for each API loader teardown and initialization
@@ -353,6 +358,7 @@ struct BenchResult {
 
 static std::vector<BenchResult> g_results;
 static bool g_emit_json = false;
+static const char *g_profile_task = nullptr;  // non-null = --profile mode
 
 static void record_result(std::string_view task_id, std::string_view title, uint64_t iterations, std::chrono::microseconds duration)
 {
@@ -392,11 +398,66 @@ int main(int argc, char **argv) {
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--json") == 0) {
             g_emit_json = true;
+        } else if (std::strcmp(argv[i], "--profile") == 0) {
+            if (i + 1 >= argc) {
+                std::cerr << "--profile requires a task id\n";
+                std::cerr << "valid tasks: full_ctx_persistent, full_ctx_transient\n";
+                return 2;
+            }
+            g_profile_task = argv[++i];
         } else {
             std::cerr << "unknown argument: " << argv[i] << "\n";
-            std::cerr << "usage: " << argv[0] << " [--json]\n";
+            std::cerr << "usage: " << argv[0] << " [--json] [--profile <task_id>]\n";
             return 2;
         }
+    }
+
+    // --profile mode: run a single task in a long loop so a sampling profiler
+    // (macOS `sample`, Instruments, samply, etc.) can collect meaningful data.
+    // The process prints its PID on stderr so you can attach a profiler, then
+    // runs PROFILE_OUTER_COUNT * INNER_COUNT_REINIT iterations and exits.
+    if (g_profile_task) {
+        std::cerr << "profile mode: task=" << g_profile_task
+                  << "  pid=" <<
+#ifdef _WIN32
+                     GetCurrentProcessId()
+#else
+                     getpid()
+#endif
+                  << "  iterations=" << PROFILE_OUTER_COUNT * INNER_COUNT_REINIT
+                  << std::endl;
+
+        if (std::strcmp(g_profile_task, "full_ctx_transient") == 0) {
+            // libvulkan is NOT pre-opened — each iteration does dlopen/dlclose
+            for (int i = 0; i < PROFILE_OUTER_COUNT; ++i) {
+                for (int j = 0; j < INNER_COUNT_REINIT; ++j) {
+                    if (!full_vulkan_context_and_teardown())
+                        return 1;
+                }
+            }
+            std::cerr << "profile complete" << std::endl;
+            return 0;
+        }
+
+        if (std::strcmp(g_profile_task, "full_ctx_persistent") == 0) {
+            if (!open_libvulkan()) {
+                std::cerr << "Failed to open libvulkan" << std::endl;
+                return -1;
+            }
+            for (int i = 0; i < PROFILE_OUTER_COUNT; ++i) {
+                for (int j = 0; j < INNER_COUNT_REINIT; ++j) {
+                    if (!full_vulkan_context_and_teardown())
+                        return 1;
+                }
+            }
+            close_libvulkan();
+            std::cerr << "profile complete" << std::endl;
+            return 0;
+        }
+
+        std::cerr << "unknown profile task: " << g_profile_task << "\n";
+        std::cerr << "valid tasks: full_ctx_persistent, full_ctx_transient\n";
+        return 2;
     }
 
     if (!open_libvulkan()) {

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="13">
+<text x="400" y="26" text-anchor="middle" font-size="15" font-weight="600" fill="#64748b">Init + load all functions — macOS</text>
+<rect x="200" y="36" width="14" height="12" fill="#94a3b8"/><text x="220" y="46" fill="#64748b">unpatched</text><rect x="310" y="36" width="14" height="12" fill="#10b981"/><text x="330" y="46" fill="#64748b">patched</text>
+<line x1="200.0" y1="64" x2="200.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
+<text x="200.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">1µs</text>
+<line x1="340.0" y1="64" x2="340.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
+<text x="340.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">10µs</text>
+<line x1="480.0" y1="64" x2="480.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
+<text x="480.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">100µs</text>
+<line x1="620.0" y1="64" x2="620.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
+<text x="620.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">1,000µs</text>
+<line x1="760.0" y1="64" x2="760.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
+<text x="760.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">10,000µs</text>
+<text x="190" y="92" text-anchor="end" fill="#64748b">Gloam (enabled-list)</text>
+<rect x="200" y="76" width="216.6" height="12" fill="#94a3b8"/>
+<text x="421.6" y="86" fill="#64748b" font-size="11">35.2µs</text>
+<rect x="200" y="92" width="98.7" height="12" fill="#10b981"/>
+<text x="303.7" y="102" fill="#64748b" font-size="11">5.1µs</text>
+<text x="190" y="138" text-anchor="end" fill="#64748b">Volk</text>
+<rect x="200" y="122" width="361.1" height="12" fill="#94a3b8"/>
+<text x="566.1" y="132" fill="#64748b" font-size="11">379.8µs</text>
+<rect x="200" y="138" width="176.2" height="12" fill="#10b981"/>
+<text x="381.2" y="148" fill="#64748b" font-size="11">18.1µs</text>
+<text x="190" y="184" text-anchor="end" fill="#64748b">GLAD (tycho)</text>
+<rect x="200" y="168" width="386.4" height="12" fill="#94a3b8"/>
+<text x="591.4" y="178" fill="#64748b" font-size="11">575.2µs</text>
+<rect x="200" y="184" width="273.1" height="12" fill="#10b981"/>
+<text x="478.1" y="194" fill="#64748b" font-size="11">89.3µs</text>
+<text x="190" y="230" text-anchor="end" fill="#64748b">Gloam (discover)</text>
+<rect x="200" y="214" width="386.5" height="12" fill="#94a3b8"/>
+<text x="591.5" y="224" fill="#64748b" font-size="11">576.3µs</text>
+<rect x="200" y="230" width="273.6" height="12" fill="#10b981"/>
+<text x="478.6" y="240" fill="#64748b" font-size="11">90.0µs</text>
+<text x="190" y="276" text-anchor="end" fill="#64748b">GLAD (dav1dde)</text>
+<rect x="200" y="260" width="461.4" height="12" fill="#94a3b8"/>
+<text x="666.4" y="270" fill="#64748b" font-size="11">1,975.6µs</text>
+<rect x="200" y="276" width="425.3" height="12" fill="#10b981"/>
+<text x="630.3" y="286" fill="#64748b" font-size="11">1,090.7µs</text>
+</svg>

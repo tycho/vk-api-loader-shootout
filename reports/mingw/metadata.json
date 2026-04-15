@@ -1,0 +1,27 @@
+{
+  "host_id": "mingw",
+  "host": {
+    "os": "MINGW64_NT-10.0-26200",
+    "arch": "x86_64",
+    "kernel_version": "3.6.7-f2802c5f.x86_64",
+    "cpu": "AMD RYZEN AI MAX+ PRO 395 w/ Radeon 8060S"
+  },
+  "toolchain": {
+    "cc": "clang",
+    "cc_version": "22.1.3",
+    "cxx": "clang++",
+    "cxx_version": "22.1.3",
+    "optflags": "-O2 -fno-unroll-loops -march=x86-64-v2 -mtune=znver3 -g0",
+    "cflags": "-std=c17",
+    "cxxflags": "-std=c++20"
+  },
+  "versions": {
+    "glad_dav1dde": "2.0.8-8-ga4ca574",
+    "glad_tycho": "2.0.8-91-g8092eae",
+    "gloam": "0.4.8-1-gac4fa45",
+    "volk": "1.4.341.0-26-gd41d1af",
+    "xxhash": "0.7.4-1019-ge573d4d",
+    "vulkan_headers": "1.4.349"
+  },
+  "vulkaninfo_summary": "Devices:\n========\nGPU0:\n\tapiVersion         = 1.4.344\n\tdriverVersion      = 2.0.388\n\tvendorID           = 0x1002\n\tdeviceID           = 0x1586\n\tdeviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU\n\tdeviceName         = AMD Radeon(TM) 8060S Graphics\n\tdriverID           = DRIVER_ID_AMD_PROPRIETARY\n\tdriverName         = AMD proprietary driver\n\tdriverInfo         = 26.5.1 (LLPC)\n\tconformanceVersion = 1.4.3.3\n\tdeviceUUID         = 00000000-c300-0000-0000-000000000000\n\tdriverUUID         = 414d442d-5749-4e2d-4452-560000000000"
+}

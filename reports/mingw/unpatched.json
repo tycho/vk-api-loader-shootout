@@ -1,0 +1,190 @@
+{
+  "variant": "unpatched",
+  "loaders": {
+    "volk": {
+      "binary": "test-volk.exe",
+      "binary_size": 110592,
+      "loader_object_size": 223294,
+      "sections": {
+        "text": 75830,
+        "data": 31532,
+        "bss": 0
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 21038,
+          "avg_us": 70.13
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 147424,
+          "avg_us": 491.41
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 18715,
+          "avg_us": 623.83
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 1022446,
+          "avg_us": 34081.53
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 1042238,
+          "avg_us": 34741.27
+        }
+      }
+    },
+    "glad-dav1dde": {
+      "binary": "test-glad-dav1dde.exe",
+      "binary_size": 120320,
+      "loader_object_size": 192597,
+      "sections": {
+        "text": 76006,
+        "data": 41372,
+        "bss": 0
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 467413,
+          "avg_us": 1558.04
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 1063418,
+          "avg_us": 3544.73
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 201951,
+          "avg_us": 6731.7
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 1222965,
+          "avg_us": 40765.5
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 1230889,
+          "avg_us": 41029.63
+        }
+      }
+    },
+    "glad-tycho": {
+      "binary": "test-glad-tycho.exe",
+      "binary_size": 70656,
+      "loader_object_size": 53072,
+      "sections": {
+        "text": 19574,
+        "data": 48220,
+        "bss": 0
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 8655,
+          "avg_us": 28.85
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 116915,
+          "avg_us": 389.72
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 95866,
+          "avg_us": 3195.53
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 1073223,
+          "avg_us": 35774.1
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 1094783,
+          "avg_us": 36492.77
+        }
+      }
+    },
+    "gloam-discover": {
+      "binary": "test-gloam-discover.exe",
+      "binary_size": 69120,
+      "loader_object_size": 46745,
+      "sections": {
+        "text": 22742,
+        "data": 43508,
+        "bss": 0
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 353991,
+          "avg_us": 1179.97
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 127029,
+          "avg_us": 423.43
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 93017,
+          "avg_us": 3100.57
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 1064173,
+          "avg_us": 35472.43
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 1075917,
+          "avg_us": 35863.9
+        }
+      }
+    },
+    "gloam-enabled": {
+      "binary": "test-gloam-enabled.exe",
+      "binary_size": 70144,
+      "loader_object_size": 46745,
+      "sections": {
+        "text": 23782,
+        "data": 43604,
+        "bss": 0
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 1593,
+          "avg_us": 5.31
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 13608,
+          "avg_us": 45.36
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 1487,
+          "avg_us": 49.57
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 1006081,
+          "avg_us": 33536.03
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 1011079,
+          "avg_us": 33702.63
+        }
+      }
+    }
+  }
+}

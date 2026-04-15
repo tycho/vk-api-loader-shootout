@@ -1,0 +1,190 @@
+{
+  "variant": "unpatched",
+  "loaders": {
+    "volk": {
+      "binary": "test-volk",
+      "binary_size": 100696,
+      "loader_object_size": 315096,
+      "sections": {
+        "text": 94069,
+        "data": 832,
+        "bss": 6112
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 11661,
+          "avg_us": 38.87
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 104141,
+          "avg_us": 347.14
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 11715,
+          "avg_us": 390.5
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 262785,
+          "avg_us": 8759.5
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 250486,
+          "avg_us": 8349.53
+        }
+      }
+    },
+    "glad-dav1dde": {
+      "binary": "test-glad-dav1dde",
+      "binary_size": 113016,
+      "loader_object_size": 316288,
+      "sections": {
+        "text": 103870,
+        "data": 864,
+        "bss": 6600
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 105882,
+          "avg_us": 352.94
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 428120,
+          "avg_us": 1427.07
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 66581,
+          "avg_us": 2219.37
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 314095,
+          "avg_us": 10469.83
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 316835,
+          "avg_us": 10561.17
+        }
+      }
+    },
+    "glad-tycho": {
+      "binary": "test-glad-tycho",
+      "binary_size": 80320,
+      "loader_object_size": 67192,
+      "sections": {
+        "text": 66623,
+        "data": 7400,
+        "bss": 7072
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 6981,
+          "avg_us": 23.27
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 76146,
+          "avg_us": 253.82
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 23777,
+          "avg_us": 792.57
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 267171,
+          "avg_us": 8905.7
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 271035,
+          "avg_us": 9034.5
+        }
+      }
+    },
+    "gloam-discover": {
+      "binary": "test-gloam-discover",
+      "binary_size": 59824,
+      "loader_object_size": 50992,
+      "sections": {
+        "text": 54005,
+        "data": 864,
+        "bss": 7136
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 71955,
+          "avg_us": 239.85
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 84076,
+          "avg_us": 280.25
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 24022,
+          "avg_us": 800.73
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 267155,
+          "avg_us": 8905.17
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 272494,
+          "avg_us": 9083.13
+        }
+      }
+    },
+    "gloam-enabled": {
+      "binary": "test-gloam-enabled",
+      "binary_size": 59832,
+      "loader_object_size": 50992,
+      "sections": {
+        "text": 54789,
+        "data": 872,
+        "bss": 7144
+      },
+      "benchmarks": {
+        "load_instance": {
+          "iterations": 300,
+          "total_us": 952,
+          "avg_us": 3.17
+        },
+        "load_device": {
+          "iterations": 300,
+          "total_us": 10221,
+          "avg_us": 34.07
+        },
+        "init_load_all": {
+          "iterations": 30,
+          "total_us": 1150,
+          "avg_us": 38.33
+        },
+        "full_ctx_persistent": {
+          "iterations": 30,
+          "total_us": 245615,
+          "avg_us": 8187.17
+        },
+        "full_ctx_transient": {
+          "iterations": 30,
+          "total_us": 249102,
+          "avg_us": 8303.4
+        }
+      }
+    }
+  }
+}

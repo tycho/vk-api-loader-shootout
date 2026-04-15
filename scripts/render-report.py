@@ -72,10 +72,11 @@ TASK_DISPLAY = {
     "full_ctx_transient":  "Full VK context (libvulkan transient)",
 }
 
-# Which tasks get SVG bar charts. The full-context rows are dominated by
-# driver overhead (vkCreateInstance, vkCreateDevice), so the per-loader shape
-# is usually flat and a chart adds no signal - skip them.
-CHARTED_TASKS = ["load_instance", "load_device", "init_load_all"]
+# Which tasks get SVG bar charts. All five tasks are charted; the full-context
+# rows are dominated by driver overhead but the patched-vs-unpatched
+# improvement (manifest caching) is clearly visible and worth showing.
+CHARTED_TASKS = ["load_instance", "load_device", "init_load_all",
+                 "full_ctx_persistent", "full_ctx_transient"]
 
 # Display name for the host subdir. Falls back to the raw id for unknown
 # hosts. The raw id is lowercase ASCII for filesystem safety; this map exists

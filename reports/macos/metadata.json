@@ -1,0 +1,27 @@
+{
+  "host_id": "macos",
+  "host": {
+    "os": "Darwin",
+    "arch": "arm64",
+    "kernel_version": "25.4.0",
+    "cpu": "Apple M5"
+  },
+  "toolchain": {
+    "cc": "clang",
+    "cc_version": "21.0.0",
+    "cxx": "clang++",
+    "cxx_version": "21.0.0",
+    "optflags": "-O2 -fno-unroll-loops -mcpu=native -g0",
+    "cflags": "-std=c17",
+    "cxxflags": "-std=c++20"
+  },
+  "versions": {
+    "glad_dav1dde": "2.0.8-8-ga4ca574",
+    "glad_tycho": "2.0.8-91-g8092eae",
+    "gloam": "0.4.8-1-gac4fa45",
+    "volk": "1.4.341.0-26-gd41d1af",
+    "xxhash": "0.7.4-1019-ge573d4d",
+    "vulkan_headers": "1.4.349"
+  },
+  "vulkaninfo_summary": "Devices:\n========\nGPU0:\n\tapiVersion         = 1.4.334\n\tdriverVersion      = 0.2.2209\n\tvendorID           = 0x106b\n\tdeviceID           = 0x1a04020a\n\tdeviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU\n\tdeviceName         = Apple M5\n\tdriverID           = DRIVER_ID_MOLTENVK\n\tdriverName         = MoltenVK\n\tdriverInfo         = 1.4.1\n\tconformanceVersion = 1.4.4.0\n\tdeviceUUID         = 0000106b-1a04-020a-0000-000000000000\n\tdriverUUID         = 4d564b00-0000-28a1-1a04-020a00000000"
+}

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="13">
+<text x="400" y="26" text-anchor="middle" font-size="15" font-weight="600" fill="#64748b">Full VK context (libvulkan transient) — MinGW</text>
+<rect x="200" y="36" width="14" height="12" fill="#94a3b8"/><text x="220" y="46" fill="#64748b">unpatched</text><rect x="310" y="36" width="14" height="12" fill="#10b981"/><text x="330" y="46" fill="#64748b">patched</text>
+<line x1="200.0" y1="64" x2="200.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
+<text x="200.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">10,000µs</text>
+<line x1="760.0" y1="64" x2="760.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
+<text x="760.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">100,000µs</text>
+<text x="190" y="92" text-anchor="end" fill="#64748b">Volk</text>
+<rect x="200" y="76" width="302.9" height="12" fill="#94a3b8"/>
+<text x="507.9" y="86" fill="#64748b" font-size="11">34,741.3µs</text>
+<rect x="200" y="92" width="295.5" height="12" fill="#10b981"/>
+<text x="500.5" y="102" fill="#64748b" font-size="11">33,704.7µs</text>
+<text x="190" y="138" text-anchor="end" fill="#64748b">Gloam (enabled-list)</text>
+<rect x="200" y="122" width="295.5" height="12" fill="#94a3b8"/>
+<text x="500.5" y="132" fill="#64748b" font-size="11">33,702.6µs</text>
+<rect x="200" y="138" width="295.7" height="12" fill="#10b981"/>
+<text x="500.7" y="148" fill="#64748b" font-size="11">33,725.7µs</text>
+<text x="190" y="184" text-anchor="end" fill="#64748b">GLAD (tycho)</text>
+<rect x="200" y="168" width="314.8" height="12" fill="#94a3b8"/>
+<text x="519.8" y="178" fill="#64748b" font-size="11">36,492.8µs</text>
+<rect x="200" y="184" width="296.6" height="12" fill="#10b981"/>
+<text x="501.6" y="194" fill="#64748b" font-size="11">33,859.9µs</text>
+<text x="190" y="230" text-anchor="end" fill="#64748b">Gloam (discover)</text>
+<rect x="200" y="214" width="310.6" height="12" fill="#94a3b8"/>
+<text x="515.6" y="224" fill="#64748b" font-size="11">35,863.9µs</text>
+<rect x="200" y="230" width="298.5" height="12" fill="#10b981"/>
+<text x="503.5" y="240" fill="#64748b" font-size="11">34,128.7µs</text>
+<text x="190" y="276" text-anchor="end" fill="#64748b">GLAD (dav1dde)</text>
+<rect x="200" y="260" width="343.3" height="12" fill="#94a3b8"/>
+<text x="548.3" y="270" fill="#64748b" font-size="11">41,029.6µs</text>
+<rect x="200" y="276" width="308.4" height="12" fill="#10b981"/>
+<text x="513.4" y="286" fill="#64748b" font-size="11">35,542.8µs</text>
+</svg>
