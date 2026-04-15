@@ -2,6 +2,16 @@
 #include <iomanip>
 #include <chrono>
 #include <cstring>
+#include <string>
+#include <string_view>
+#include <vector>
+
+// Injected by the Makefile as '-DLOADER_ID="<name>"'. Falls back to "unknown"
+// when compiled outside the Makefile (e.g. the MSVC solution), which only
+// affects --json output - the human-readable default mode doesn't use it.
+#ifndef LOADER_ID
+#define LOADER_ID "unknown"
+#endif
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -330,8 +340,25 @@ static bool full_vulkan_context_and_teardown()
     return true;
 }
 
-static void print_result(std::string_view title, uint64_t iterations, std::chrono::microseconds duration)
+// Collected benchmark results. Each entry carries both the machine-readable
+// task id (used in --json output) and the human-readable title (used in the
+// default Markdown table). main() accumulates into g_results and then emits
+// the right format at the end based on g_emit_json.
+struct BenchResult {
+    std::string_view task_id;
+    std::string_view title;
+    uint64_t iterations;
+    std::chrono::microseconds duration;
+};
+
+static std::vector<BenchResult> g_results;
+static bool g_emit_json = false;
+
+static void record_result(std::string_view task_id, std::string_view title, uint64_t iterations, std::chrono::microseconds duration)
 {
+    g_results.push_back({task_id, title, iterations, duration});
+    if (g_emit_json)
+        return;
     std::cout << "| " <<
         std::setw(42) << std::left << title << " | " <<
         std::setw(10) << std::right << iterations << " | " <<
@@ -339,10 +366,38 @@ static void print_result(std::string_view title, uint64_t iterations, std::chron
         std::setw(17) << std::right << std::fixed << std::setprecision(2) << (duration.count() / static_cast<double>(iterations)) << " |\n";
 }
 
-int main() {
+static void emit_json()
+{
+    std::cout << "{\n";
+    std::cout << "  \"loader\": \"" << LOADER_ID << "\",\n";
+    std::cout << "  \"benchmarks\": {\n";
+    for (size_t i = 0; i < g_results.size(); ++i) {
+        const auto &r = g_results[i];
+        double avg = r.duration.count() / static_cast<double>(r.iterations);
+        std::cout << "    \"" << r.task_id << "\": { "
+                  << "\"iterations\": " << r.iterations << ", "
+                  << "\"total_us\": " << r.duration.count() << ", "
+                  << "\"avg_us\": " << std::fixed << std::setprecision(2) << avg
+                  << " }" << (i + 1 < g_results.size() ? "," : "") << "\n";
+    }
+    std::cout << "  }\n";
+    std::cout << "}\n";
+}
+
+int main(int argc, char **argv) {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
 #endif
+
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--json") == 0) {
+            g_emit_json = true;
+        } else {
+            std::cerr << "unknown argument: " << argv[i] << "\n";
+            std::cerr << "usage: " << argv[0] << " [--json]\n";
+            return 2;
+        }
+    }
 
     if (!open_libvulkan()) {
         std::cerr << "Failed to open libvulkan" << std::endl;
@@ -443,8 +498,10 @@ int main() {
     if (!loader_load_device(instance, physicalDevice, device, deviceCreateInfo.enabledExtensionCount, deviceCreateInfo.ppEnabledExtensionNames))
         return -1;
 
-    std::cout << "| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |\n";
-    std::cout << "|--------------------------------------------|------------|-----------------|-------------------|\n";
+    if (!g_emit_json) {
+        std::cout << "| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |\n";
+        std::cout << "|--------------------------------------------|------------|-----------------|-------------------|\n";
+    }
 
     // Benchmark loading instance functions
     std::chrono::microseconds bestInstanceDuration = std::chrono::microseconds::max();
@@ -457,7 +514,7 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
         bestInstanceDuration = std::min(bestInstanceDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
-    print_result("Load instance functions", INNER_COUNT, bestInstanceDuration);
+    record_result("load_instance", "Load instance functions", INNER_COUNT, bestInstanceDuration);
 
     // Benchmark loading device functions
     std::chrono::microseconds bestDeviceDuration = std::chrono::microseconds::max();
@@ -470,7 +527,7 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
         bestDeviceDuration = std::min(bestDeviceDuration, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
-    print_result("Load device functions", INNER_COUNT, bestDeviceDuration);
+    record_result("load_device", "Load device functions", INNER_COUNT, bestDeviceDuration);
 
     // Benchmark full teardown and initialization of API loader
     std::chrono::microseconds bestReDetect = std::chrono::microseconds::max();
@@ -489,7 +546,7 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
         bestReDetect = std::min(bestReDetect, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
-    print_result("Init + load all functions", INNER_COUNT_REINIT, bestReDetect);
+    record_result("init_load_all", "Init + load all functions", INNER_COUNT_REINIT, bestReDetect);
 
     // Cleanup
     vkDestroyDevice(device, nullptr);
@@ -507,7 +564,7 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
         bestContextResidentLibvulkan = std::min(bestContextResidentLibvulkan, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
-    print_result("Full VK context (libvulkan persistent)", INNER_COUNT_REINIT, bestContextResidentLibvulkan);
+    record_result("full_ctx_persistent", "Full VK context (libvulkan persistent)", INNER_COUNT_REINIT, bestContextResidentLibvulkan);
 
     close_libvulkan();
 
@@ -522,7 +579,10 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
         bestContextNoLibvulkan = std::min(bestContextNoLibvulkan, std::chrono::duration_cast<std::chrono::microseconds>(end - start));
     }
-    print_result("Full VK context (libvulkan transient)", INNER_COUNT_REINIT, bestContextNoLibvulkan);
+    record_result("full_ctx_transient", "Full VK context (libvulkan transient)", INNER_COUNT_REINIT, bestContextNoLibvulkan);
+
+    if (g_emit_json)
+        emit_json();
 
     return 0;
 }

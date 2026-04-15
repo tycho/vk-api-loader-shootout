@@ -79,6 +79,24 @@ endif
 CC_VERSION := $(shell $(CC) -dumpversion)
 CXX_VERSION := $(shell $(CXX) -dumpversion)
 
+# Report-generation configuration. HOST names a subdirectory under REPORTS_DIR
+# and defaults to a short, OS-derived id matching the display names the
+# renderer knows about (linux / macos / mingw). Override on the command line
+# when you want to distinguish multiple machines of the same OS, e.g.
+# `make report HOST=linux-ryzen-9950x`.
+ifeq ($(VK_HOST_OS),windows)
+HOST ?= mingw
+else
+HOST ?= $(VK_HOST_OS)
+endif
+
+REPORTS_DIR     := reports
+REPORT_HOST_DIR := $(REPORTS_DIR)/$(HOST)
+
+# Python interpreter used by the report scripts. Override with e.g.
+# `PYTHON=python3.12` or `PYTHON=python` if python3 isn't on PATH.
+PYTHON ?= python3
+
 XXHASH_DEP := extern/xxHash/xxhash.h
 XXHASH_INC := -Iextern/xxHash
 
@@ -135,7 +153,7 @@ run: build
 	@(cd bin; ./test-gloam-discover) && sleep 1
 	@echo
 	@echo "[Gloam (enabled-list API)](https://github.com/tycho/gloam)"
-	@(cd bin; ./test-gloam) && sleep 1
+	@(cd bin; ./test-gloam-enabled) && sleep 1
 	@echo
 	@echo "[Volk](https://github.com/zeux/volk)"
 	@(cd bin; ./test-volk)
@@ -183,7 +201,7 @@ obj/loader-$(1).o: $(2) $(6) .cflags
 	$$(CC) -c -o $$@ $$(OPTFLAGS) $$(CFLAGS) $$(DEPFLAGS) $(3) $$<
 
 obj/main-$(1).o: src/main.cpp $(2) $(6) .cflags
-	$$(CXX) -c -o $$@ $$(OPTFLAGS) $$(CXXFLAGS) $$(DEPFLAGS) -D$(4) $(5) $$<
+	$$(CXX) -c -o $$@ $$(OPTFLAGS) $$(CXXFLAGS) $$(DEPFLAGS) -D$(4) '-DLOADER_ID="$(1)"' $(5) $$<
 
 bin/test-$(1): obj/loader-$(1).o obj/main-$(1).o
 	$$(LINK) -o $$@ $$(OPTFLAGS) $$(LDFLAGS) $$^
@@ -218,7 +236,7 @@ $(eval $(call build_test,gloam-discover,\
   -Igenerated/gloam/include,\
   $(XXHASH_DEP)))
 
-$(eval $(call build_test,gloam,\
+$(eval $(call build_test,gloam-enabled,\
   generated/gloam/src/vk.c,\
   $(XXHASH_INC) -Igenerated/gloam/include,\
   USE_GLOAM,\
@@ -296,6 +314,96 @@ endif
 
 unlink-vulkan:
 	rm -f $(VK_LOADER_LINKS) $(VK_TOOLS_BIN)
+
+# ---------------------------------------------------------------------------
+# Report generation
+#
+# `make report` produces a machine-readable snapshot of the benchmark results
+# plus host metadata under $(REPORT_HOST_DIR)/. The snapshot is three JSON
+# files: metadata.json (host/toolchain/versions/vulkaninfo), unpatched.json
+# (benchmarks + sizes with the stock Vulkan loader), and patched.json (same
+# with our patched loader). `make render` turns those JSON files into
+# Markdown fragments + SVG bar charts under the same directory plus an
+# amalgamated reports/$(HOST).md for quick viewing.
+#
+# Report generation is deliberately NOT a prerequisite of `make run` - the
+# existing run target is still the quick "does this work on my box?" path.
+# Report targets are invoked manually on each machine, the per-host subdir
+# is copied into the shared reports/ tree on a workstation, and render/
+# updates the rendered artifacts.
+
+# Turn 'bin/test-foo bin/test-bar' into '--loader=foo --loader=bar' for
+# collect-variant.py. Uses $(BINS), which build_test already populates.
+LOADER_FLAGS := $(addprefix --loader=,$(patsubst bin/test-%,%,$(BINS)))
+
+# Note on sequencing: report-unpatched must run before report-patched because
+# they toggle the loader link state (unlink-vulkan vs link-vulkan) and we
+# don't want them to race under parallel make. The top-level report: target
+# recursively invokes sub-makes to force serial execution regardless of -j.
+report:
+	@$(MAKE) report-unpatched
+	@$(MAKE) report-patched
+	@$(MAKE) report-metadata
+	@echo
+	@echo "report written to $(REPORT_HOST_DIR)/"
+	@echo "  run 'make render' to regenerate the markdown and charts"
+
+report-metadata: | $(REPORT_HOST_DIR)
+	$(PYTHON) scripts/collect-metadata.py \
+		--host-id='$(HOST)' \
+		--output='$(REPORT_HOST_DIR)/metadata.json' \
+		--os='$(uname_S)' \
+		--arch='$(uname_M)' \
+		--kernel-version='$(uname_R)' \
+		--cpu-brand='$(CPU_BRAND)' \
+		--cc='$(CC)' \
+		--cc-version='$(CC_VERSION)' \
+		--cxx='$(CXX)' \
+		--cxx-version='$(CXX_VERSION)' \
+		--optflags='$(OPTFLAGS)' \
+		--cflags='$(CFLAGS)' \
+		--cxxflags='$(CXXFLAGS)' \
+		--version='glad_dav1dde=$(GLAD_DAV1DDE_VERSION)' \
+		--version='glad_tycho=$(GLAD_TYCHO_VERSION)' \
+		--version='gloam=$(GLOAM_VERSION)' \
+		--version='volk=$(VOLK_VERSION)' \
+		--version='xxhash=$(XXHASH_VERSION)' \
+		--version='vulkan_headers=$(VK_HEADERS_VERSION)' \
+		--vulkaninfo='$(VK_TOOLS_BIN)'
+
+# Unpatched variant: unlink the patched loader out of bin/ so the test
+# binaries resolve against the system Vulkan loader, build everything if
+# needed, then run each test binary in --json mode.
+report-unpatched: unlink-vulkan build | $(REPORT_HOST_DIR)
+	$(PYTHON) scripts/collect-variant.py \
+		--variant=unpatched \
+		--bin-dir=bin \
+		--obj-dir=obj \
+		$(LOADER_FLAGS) \
+		--output='$(REPORT_HOST_DIR)/unpatched.json'
+
+# Patched variant: ensure the patched loader and vulkaninfo are built (via
+# vulkan-tools, which transitively depends on vulkan-loader and vkheaders),
+# link them into bin/, build the test binaries, then run each in --json mode.
+report-patched: vulkan-tools link-vulkan build | $(REPORT_HOST_DIR)
+	$(PYTHON) scripts/collect-variant.py \
+		--variant=patched \
+		--bin-dir=bin \
+		--obj-dir=obj \
+		$(LOADER_FLAGS) \
+		--output='$(REPORT_HOST_DIR)/patched.json'
+
+render:
+	$(PYTHON) scripts/render-report.py --reports-dir='$(REPORTS_DIR)'
+
+reports-clean:
+	rm -rf '$(REPORT_HOST_DIR)'
+	rm -f '$(REPORTS_DIR)/$(HOST).md'
+
+$(REPORT_HOST_DIR):
+	mkdir -p '$@'
+
+.PHONY: report report-metadata report-unpatched report-patched render reports-clean
 
 build: $(BINS)
 
