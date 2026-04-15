@@ -30,7 +30,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{de958270-ae79-413a-b8f6-884d53e95932}</ProjectGuid>
-    <RootNamespace>testgladdav1dde</RootNamespace>
+    <RootNamespace>test-glad-dav1dde</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

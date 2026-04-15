@@ -28,15 +28,15 @@
 #include <volk.h>
 #elif defined(USE_GLAD)
 #include <glad/vulkan.h>
-#elif defined(USE_GLOAM) || defined(USE_GLOAM_DISCOVER)
+#elif defined(USE_GLOAM_ENABLED) || defined(USE_GLOAM_DISCOVER)
 #include <gloam/vk.h>
 #endif
 
 #if ((defined(USE_VOLK) ? 1 : 0) + \
      (defined(USE_GLAD) ? 1 : 0) + \
-     (defined(USE_GLOAM) ? 1 : 0) + \
+     (defined(USE_GLOAM_ENABLED) ? 1 : 0) + \
      (defined(USE_GLOAM_DISCOVER) ? 1 : 0)) != 1
-#error "Must define exactly one of (USE_VOLK, USE_GLOAM, USE_GLOAM_DISCOVER, USE_GLAD) for this to compile"
+#error "Must define exactly one of (USE_VOLK, USE_GLOAM_ENABLED, USE_GLOAM_DISCOVER, USE_GLAD) for this to compile"
 #endif
 
 
@@ -145,7 +145,7 @@ static bool loader_init()
         std::cerr << "Failed to initialize gloam!" << std::endl;
         return false;
     }
-#elif defined(USE_GLOAM)
+#elif defined(USE_GLOAM_ENABLED)
     int vk_version = gloamVulkanInitialize(libvulkan_handle);
     if (!vk_version) {
         std::cerr << "Failed to initialize gloam!" << std::endl;
@@ -178,7 +178,7 @@ static bool loader_load_instance(VkInstance instance, uint32_t apiVersion, uint3
         std::cerr << "gloam failed to load VK instance functions!" << std::endl;
         return false;
     }
-#elif defined(USE_GLOAM)
+#elif defined(USE_GLOAM_ENABLED)
     int vk_version = gloamVulkanLoadInstance(instance, apiVersion, nEnabledExtensions, ppEnabledExtensions);
     if (!vk_version) {
         std::cerr << "gloam failed to load VK instance functions!" << std::endl;
@@ -211,7 +211,7 @@ static bool loader_load_device(VkInstance instance, VkPhysicalDevice physicalDev
         std::cerr << "gloam failed to load VK device functions!" << std::endl;
         return false;
     }
-#elif defined(USE_GLOAM)
+#elif defined(USE_GLOAM_ENABLED)
     int vk_version = gloamVulkanLoadDevice(device, physicalDevice, nEnabledExtensions, ppEnabledExtensions);
     if (!vk_version) {
         std::cerr << "gloam failed to load VK device functions!" << std::endl;
@@ -230,7 +230,7 @@ static bool loader_destroy()
     gladLoaderUnloadVulkan();
 #elif defined(USE_GLOAM_DISCOVER)
     gloamLoaderUnloadVulkan();
-#elif defined(USE_GLOAM)
+#elif defined(USE_GLOAM_ENABLED)
     gloamVulkanFinalize();
 #endif
     return true;

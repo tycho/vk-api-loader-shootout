@@ -239,7 +239,7 @@ $(eval $(call build_test,gloam-discover,\
 $(eval $(call build_test,gloam-enabled,\
   generated/gloam/src/vk.c,\
   $(XXHASH_INC) -Igenerated/gloam/include,\
-  USE_GLOAM,\
+  USE_GLOAM_ENABLED,\
   -Igenerated/gloam/include,\
   $(XXHASH_DEP)))
 

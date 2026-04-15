@@ -29,8 +29,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{8a5bd13a-1719-4022-82c3-7683f4845818}</ProjectGuid>
-    <RootNamespace>test-glad-tycho</RootNamespace>
+    <ProjectGuid>{57fc9c55-c818-4033-a0cf-59a4724a4e86}</ProjectGuid>
+    <RootNamespace>test-gloam-enabled</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -81,43 +81,37 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="all-common.props" />
-    <Import Project="GLAD-common.props" />
-    <Import Project="GLAD-tycho.props" />
+    <Import Project="gloam-enabled.props" />
     <Import Project="Config-Debug.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="all-common.props" />
-    <Import Project="GLAD-common.props" />
-    <Import Project="GLAD-tycho.props" />
+    <Import Project="gloam-enabled.props" />
     <Import Project="Config-Release.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="all-common.props" />
-    <Import Project="GLAD-common.props" />
-    <Import Project="GLAD-tycho.props" />
+    <Import Project="gloam-enabled.props" />
     <Import Project="Config-Debug.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="all-common.props" />
-    <Import Project="GLAD-common.props" />
-    <Import Project="GLAD-tycho.props" />
+    <Import Project="gloam-enabled.props" />
     <Import Project="Config-Debug.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="all-common.props" />
-    <Import Project="GLAD-common.props" />
-    <Import Project="GLAD-tycho.props" />
+    <Import Project="gloam-enabled.props" />
     <Import Project="Config-Release.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="all-common.props" />
-    <Import Project="GLAD-common.props" />
-    <Import Project="GLAD-tycho.props" />
+    <Import Project="gloam-enabled.props" />
     <Import Project="Config-Release.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -206,11 +200,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\generated\glad-tycho\src\vulkan.c" />
+    <ClCompile Include="..\generated\gloam\src\vk.c" />
     <ClCompile Include="..\src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\generated\glad-tycho\include\glad\vulkan.h" />
+    <ClInclude Include="..\generated\gloam\include\gloam\vk.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
