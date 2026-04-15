@@ -385,6 +385,9 @@ report-unpatched: unlink-vulkan build | $(REPORT_HOST_DIR)
 # Patched variant: ensure the patched loader and vulkaninfo are built (via
 # vulkan-tools, which transitively depends on vulkan-loader and vkheaders),
 # link them into bin/, build the test binaries, then run each in --json mode.
+report-patched: export MVK_CONFIG_LOG_LEVEL=1
+report-patched: export LD_LIBRARY_PATH=$(shell cd bin && pwd -P)
+report-patched: export DYLD_LIBRARY_PATH=$(shell cd bin && pwd -P)
 report-patched: vulkan-tools link-vulkan build | $(REPORT_HOST_DIR)
 	$(PYTHON) scripts/collect-variant.py \
 		--variant=patched \
