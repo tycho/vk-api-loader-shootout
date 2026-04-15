@@ -53,6 +53,29 @@ GLAD_TYCHO_VERSION := $(shell cd extern/glad-tycho && git describe --tags | sed 
 GLOAM_VERSION := $(shell cd extern/gloam && git describe --tags | sed 's/^v//')
 GLAD_DAV1DDE_VERSION := $(shell cd extern/glad-dav1dde && git describe --tags | sed 's/^v//')
 
+# Per-platform Vulkan loader library names. On Windows we copy the DLL (MinGW
+# symlinks silently degrade to copies anyway); elsewhere we symlink so that an
+# updated prefix/ build is picked up automatically.
+ifneq (,$(filter MINGW% MSYS% CYGWIN%,$(uname_S)))
+VK_HOST_OS      := windows
+VK_LOADER_SRC   := prefix/bin/vulkan-1.dll
+VK_LOADER_LINKS := bin/vulkan-1.dll bin/vulkan-1-999-0-0-0.dll
+VK_TOOLS_BIN    := bin/vulkaninfo.exe
+VK_TOOLS_SRC    := prefix/bin/vulkaninfo.exe
+else ifeq ($(uname_S),Darwin)
+VK_HOST_OS      := macos
+VK_LOADER_SRC   := prefix/lib/libvulkan.1.dylib
+VK_LOADER_LINKS := bin/libvulkan.dylib bin/libvulkan.1.dylib
+VK_TOOLS_BIN    := bin/vulkaninfo
+VK_TOOLS_SRC    := prefix/bin/vulkaninfo
+else
+VK_HOST_OS      := linux
+VK_LOADER_SRC   := prefix/lib/libvulkan.so.1
+VK_LOADER_LINKS := bin/libvulkan.so bin/libvulkan.so.1
+VK_TOOLS_BIN    := bin/vulkaninfo
+VK_TOOLS_SRC    := prefix/bin/vulkaninfo
+endif
+
 CC_VERSION := $(shell $(CC) -dumpversion)
 CXX_VERSION := $(shell $(CXX) -dumpversion)
 
@@ -134,10 +157,18 @@ run: build
 	@echo
 	@echo vulkaninfo
 	@echo "\`\`\`"
-	@vulkaninfo --summary | grep -A9999 '^Devices:$$'
+	@# Prefer the locally-built vulkaninfo (inside bin/) over whatever is on
+	@# PATH. On Windows this matters because the system-global vulkaninfo.exe
+	@# lives next to the system vulkan-1.dll in System32 and will pick that
+	@# DLL up regardless of PATH/cwd, bypassing our patched loader.
+	@(cd bin && \
+		if [[ -x ./vulkaninfo.exe ]]; then ./vulkaninfo.exe --summary; \
+		elif [[ -x ./vulkaninfo ]]; then ./vulkaninfo --summary; \
+		else vulkaninfo --summary; fi) | grep -A9999 '^Devices:$$'
 	@echo "\`\`\`"
 
 .PHONY: all clean distclean run build
+.PHONY: vulkan-headers libvulkan vulkan-tools link-vulkan unlink-vulkan
 
 # $(1) = target name (e.g. volk, glad-tycho, gloam)
 # $(2) = loader source file
@@ -194,19 +225,77 @@ $(eval $(call build_test,gloam,\
   -Igenerated/gloam/include,\
   $(XXHASH_DEP)))
 
-vkheaders:
+vulkan-headers:
 	mkdir -p build
-	rm -rf build/vkheaders
-	cmake -S extern/Vulkan-Headers -B build/vkheaders -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$(PWD)/prefix -G Ninja
-	cmake --build build/vkheaders
-	cmake --install build/vkheaders
+	rm -rf build/vulkan-headers
+	cmake -S extern/Vulkan-Headers -B build/vulkan-headers -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$(PWD)/prefix -G Ninja
+	cmake --build build/vulkan-headers
+	cmake --install build/vulkan-headers
 
-libvulkan:
+# Loader depends on the headers, so force the sequence via a prerequisite.
+vulkan-loader: vulkan-headers
 	mkdir -p build
-	rm -rf build/libvulkan
-	cmake -S extern/Vulkan-Loader -B build/libvulkan -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-I$(PWD)/prefix/include" -DCMAKE_C_FLAGS="-I$(PWD)/prefix/include" -DVULKAN_HEADERS_INSTALL_DIR=$(PWD)/prefix -DCMAKE_INSTALL_PREFIX=$(PWD)/prefix -G Ninja
-	cmake --build build/libvulkan
-	cmake --install build/libvulkan
+	rm -rf build/vulkan-loader
+	cmake -S extern/Vulkan-Loader -B build/vulkan-loader -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-I$(PWD)/prefix/include" -DCMAKE_C_FLAGS="-I$(PWD)/prefix/include" -DVULKAN_HEADERS_INSTALL_DIR=$(PWD)/prefix -DCMAKE_INSTALL_PREFIX=$(PWD)/prefix -G Ninja
+	cmake --build build/vulkan-loader
+	cmake --install build/vulkan-loader
+
+# Vulkan-Tools supplies vulkaninfo. We build only vulkaninfo (no cube / mock
+# ICD / tests) and link it against the loader we just installed into prefix/.
+#
+# Patch: upstream gates the Win32 user32.dll handle loader on _MSC_VER, which
+# leaves user32_handles as nullptr under MinGW/clang64 and segfaults inside
+# AppCreateWin32Window. patches/vulkan-tools-mingw-user32.patch flips that
+# guard to _WIN32. Applied idempotently: we use `apply --reverse --check` to
+# detect an already-patched tree and skip re-applying.
+vulkan-tools: vulkan-loader
+	mkdir -p build
+	rm -rf build/vulkan-tools
+	@if git -C extern/Vulkan-Tools apply --reverse --check $(PWD)/patches/vulkan-tools-mingw-user32.patch 2>/dev/null; then \
+		echo "  patch already applied: vulkan-tools-mingw-user32.patch"; \
+	else \
+		echo "  applying patch: vulkan-tools-mingw-user32.patch"; \
+		git -C extern/Vulkan-Tools apply $(PWD)/patches/vulkan-tools-mingw-user32.patch; \
+	fi
+	cmake -S extern/Vulkan-Tools -B build/vulkan-tools \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_C_FLAGS="-I$(PWD)/prefix/include" \
+		-DCMAKE_CXX_FLAGS="-I$(PWD)/prefix/include" \
+		-DVULKAN_HEADERS_INSTALL_DIR=$(PWD)/prefix \
+		-DVULKAN_LOADER_INSTALL_DIR=$(PWD)/prefix \
+		-DCMAKE_PREFIX_PATH=$(PWD)/prefix \
+		-DCMAKE_INSTALL_PREFIX=$(PWD)/prefix \
+		-DBUILD_CUBE=OFF -DBUILD_ICD=OFF -DBUILD_TESTS=OFF \
+		-G Ninja
+	cmake --build build/vulkan-tools
+	cmake --install build/vulkan-tools
+
+# Copy/symlink the loader (and vulkaninfo, if built) from prefix/ into bin/
+# so the test binaries resolve the patched loader rather than the system one.
+# On Windows this means vulkan-1.dll sits next to the test executables (and a
+# versioned alias is provided to match the canonical system name layout); on
+# Linux/macOS the dynamic loader finds libvulkan via LD_LIBRARY_PATH=bin (see
+# the `run` target exports).
+link-vulkan:
+	@mkdir -p bin
+	@if [[ ! -f "$(VK_LOADER_SRC)" ]]; then \
+		echo "error: $(VK_LOADER_SRC) not found - run 'make libvulkan' first" >&2; \
+		exit 1; \
+	fi
+ifeq ($(VK_HOST_OS),windows)
+	cp -f "$(VK_LOADER_SRC)" bin/vulkan-1.dll
+	cp -f "$(VK_LOADER_SRC)" bin/vulkan-1-999-0-0-0.dll
+else
+	ln -sf "$(PWD)/$(VK_LOADER_SRC)" $(word 2,$(VK_LOADER_LINKS))
+	ln -sf "$(notdir $(word 2,$(VK_LOADER_LINKS)))" $(word 1,$(VK_LOADER_LINKS))
+endif
+	@if [[ -f "$(VK_TOOLS_SRC)" ]]; then \
+		echo "  installing $(VK_TOOLS_BIN)"; \
+		cp -f "$(VK_TOOLS_SRC)" "$(VK_TOOLS_BIN)"; \
+	fi
+
+unlink-vulkan:
+	rm -f $(VK_LOADER_LINKS) $(VK_TOOLS_BIN)
 
 build: $(BINS)
 

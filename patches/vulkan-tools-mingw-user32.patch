@@ -1,0 +1,13 @@
+diff --git a/vulkaninfo/vulkaninfo.cpp b/vulkaninfo/vulkaninfo.cpp
+index 2c11226a..2fde2bf7 100644
+--- a/vulkaninfo/vulkaninfo.cpp
++++ b/vulkaninfo/vulkaninfo.cpp
+@@ -1484,7 +1484,7 @@ int main(int argc, char **argv) {
+     if (!parsing_return) return 1;
+     ParsedResults parse_data = parsing_return.value();
+ 
+-#if defined(_MSC_VER)
++#if defined(_WIN32)
+     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);

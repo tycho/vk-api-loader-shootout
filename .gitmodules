@@ -22,3 +22,6 @@
 [submodule "extern/Vulkan-Loader"]
 	path = extern/Vulkan-Loader
 	url = https://github.com/tycho/Vulkan-Loader.git
+[submodule "extern/Vulkan-Tools"]
+	path = extern/Vulkan-Tools
+	url = https://github.com/KhronosGroup/Vulkan-Tools
