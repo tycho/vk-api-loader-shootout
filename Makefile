@@ -14,6 +14,9 @@ CPU_BRAND := $(shell scripts/get_cpu_brand.sh)
 # Common flags
 DEBUGFLAGS := -g0
 LDFLAGS := -s
+ifeq ($(uname_S),Darwin)
+LDFLAGS += -Wl,-rpath,@executable_path
+endif
 
 # Enable symbols
 ifdef DEBUG
@@ -57,23 +60,26 @@ GLAD_DAV1DDE_VERSION := $(shell cd extern/glad-dav1dde && git describe --tags | 
 # symlinks silently degrade to copies anyway); elsewhere we symlink so that an
 # updated prefix/ build is picked up automatically.
 ifneq (,$(filter MINGW% MSYS% CYGWIN%,$(uname_S)))
-VK_HOST_OS      := windows
-VK_LOADER_SRC   := prefix/bin/vulkan-1.dll
-VK_LOADER_LINKS := bin/vulkan-1.dll bin/vulkan-1-999-0-0-0.dll
-VK_TOOLS_BIN    := bin/vulkaninfo.exe
-VK_TOOLS_SRC    := prefix/bin/vulkaninfo.exe
-else ifeq ($(uname_S),Darwin)
-VK_HOST_OS      := macos
-VK_LOADER_SRC   := prefix/lib/libvulkan.1.dylib
-VK_LOADER_LINKS := bin/libvulkan.dylib bin/libvulkan.1.dylib
-VK_TOOLS_BIN    := bin/vulkaninfo
-VK_TOOLS_SRC    := prefix/bin/vulkaninfo
+VK_HOST_OS               := windows
+VK_LOADER_SRC            := prefix/bin/vulkan-1.dll
+VK_LOADER_SRC_UNPATCHED  := prefix/unpatched/bin/vulkan-1.dll
+VK_LOADER_LINKS          := bin/vulkan-1.dll bin/vulkan-1-999-0-0-0.dll
+VK_TOOLS_BIN             := bin/vulkaninfo.exe
+VK_TOOLS_SRC             := prefix/bin/vulkaninfo.exe
+else ifeq  ($(uname_S),Darwin)
+VK_HOST_OS               := macos
+VK_LOADER_SRC            := prefix/lib/libvulkan.1.dylib
+VK_LOADER_SRC_UNPATCHED  := prefix/unpatched/lib/libvulkan.1.dylib
+VK_LOADER_LINKS          := bin/libvulkan.dylib bin/libvulkan.1.dylib
+VK_TOOLS_BIN             := bin/vulkaninfo
+VK_TOOLS_SRC             := prefix/bin/vulkaninfo
 else
-VK_HOST_OS      := linux
-VK_LOADER_SRC   := prefix/lib/libvulkan.so.1
-VK_LOADER_LINKS := bin/libvulkan.so bin/libvulkan.so.1
-VK_TOOLS_BIN    := bin/vulkaninfo
-VK_TOOLS_SRC    := prefix/bin/vulkaninfo
+VK_HOST_OS               := linux
+VK_LOADER_SRC            := prefix/lib/libvulkan.so.1
+VK_LOADER_SRC_UNPATCHED  := prefix/unpatched/lib/libvulkan.so.1
+VK_LOADER_LINKS          := bin/libvulkan.so bin/libvulkan.so.1
+VK_TOOLS_BIN             := bin/vulkaninfo
+VK_TOOLS_SRC             := prefix/bin/vulkaninfo
 endif
 
 CC_VERSION := $(shell $(CC) -dumpversion)
@@ -117,8 +123,10 @@ distclean: clean
 	rm -rf venv/glad-*
 
 run: export MVK_CONFIG_LOG_LEVEL=1
+# On macOS, @rpath finds bin/libvulkan.dylib. On Linux, LD_LIBRARY_PATH is needed.
+ifneq ($(uname_S),Darwin)
 run: export LD_LIBRARY_PATH=$(shell cd bin && pwd -P)
-run: export DYLD_LIBRARY_PATH=$(shell cd bin && pwd -P)
+endif
 run: build
 	@echo
 	@echo "| Project        | Version (git describe)      |"
@@ -186,7 +194,8 @@ run: build
 	@echo "\`\`\`"
 
 .PHONY: all clean distclean run build
-.PHONY: vulkan-headers libvulkan vulkan-tools link-vulkan unlink-vulkan
+.PHONY: vulkan-headers vulkan-loader vulkan-loader-unpatched vulkan-tools
+.PHONY: link-vulkan link-vulkan-unpatched unlink-vulkan
 
 # $(1) = target name (e.g. volk, glad-tycho, gloam)
 # $(2) = loader source file
@@ -258,6 +267,38 @@ vulkan-loader: vulkan-headers
 	cmake --build build/vulkan-loader
 	cmake --install build/vulkan-loader
 
+# Build the unpatched Vulkan-Loader from the merge-base of our tree vs.
+# upstream. Uses a temporary git worktree so the working tree is undisturbed.
+VK_LOADER_UPSTREAM_URL := https://github.com/KhronosGroup/Vulkan-Loader.git
+vulkan-loader-unpatched: vulkan-headers
+	@# Ensure upstream remote exists and is up to date
+	@if ! git -C extern/Vulkan-Loader remote get-url upstream >/dev/null 2>&1; then \
+		echo "  adding upstream remote for extern/Vulkan-Loader"; \
+		git -C extern/Vulkan-Loader remote add upstream $(VK_LOADER_UPSTREAM_URL); \
+	fi
+	git -C extern/Vulkan-Loader remote update upstream
+	@# Determine the merge-base (the last upstream commit before local patches)
+	$(eval VK_MERGE_BASE := $(shell git -C extern/Vulkan-Loader merge-base HEAD upstream/main))
+	@echo "  merge-base: $(VK_MERGE_BASE)"
+	@# Create a temporary worktree at the merge-base
+	$(eval VK_UNPATCHED_WORKTREE := $(shell mktemp -d)/vkloader-unpatched)
+	git -C extern/Vulkan-Loader worktree add "$(VK_UNPATCHED_WORKTREE)" $(VK_MERGE_BASE) --detach
+	@# Build and install the unpatched loader
+	mkdir -p build
+	rm -rf build/vulkan-loader-unpatched
+	cmake -S "$(VK_UNPATCHED_WORKTREE)" -B build/vulkan-loader-unpatched \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_CXX_FLAGS="-I$(PWD)/prefix/include" \
+		-DCMAKE_C_FLAGS="-I$(PWD)/prefix/include" \
+		-DVULKAN_HEADERS_INSTALL_DIR=$(PWD)/prefix \
+		-DCMAKE_INSTALL_PREFIX=$(PWD)/prefix/unpatched \
+		-G Ninja
+	cmake --build build/vulkan-loader-unpatched
+	cmake --install build/vulkan-loader-unpatched
+	@# Clean up the worktree
+	git -C extern/Vulkan-Loader worktree remove "$(VK_UNPATCHED_WORKTREE)" --force 2>/dev/null || true
+	@rmdir "$$(dirname "$(VK_UNPATCHED_WORKTREE)")" 2>/dev/null || true
+
 # Vulkan-Tools supplies vulkaninfo. We build only vulkaninfo (no cube / mock
 # ICD / tests) and link it against the loader we just installed into prefix/.
 #
@@ -279,6 +320,7 @@ vulkan-tools: vulkan-loader
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DCMAKE_C_FLAGS="-I$(PWD)/prefix/include" \
 		-DCMAKE_CXX_FLAGS="-I$(PWD)/prefix/include" \
+		-DCMAKE_EXE_LINKER_FLAGS="$(LDFLAGS)" \
 		-DVULKAN_HEADERS_INSTALL_DIR=$(PWD)/prefix \
 		-DVULKAN_LOADER_INSTALL_DIR=$(PWD)/prefix \
 		-DCMAKE_PREFIX_PATH=$(PWD)/prefix \
@@ -288,29 +330,35 @@ vulkan-tools: vulkan-loader
 	cmake --build build/vulkan-tools
 	cmake --install build/vulkan-tools
 
-# Copy/symlink the loader (and vulkaninfo, if built) from prefix/ into bin/
-# so the test binaries resolve the patched loader rather than the system one.
-# On Windows this means vulkan-1.dll sits next to the test executables (and a
-# versioned alias is provided to match the canonical system name layout); on
-# Linux/macOS the dynamic loader finds libvulkan via LD_LIBRARY_PATH=bin (see
-# the `run` target exports).
-link-vulkan:
-	@mkdir -p bin
-	@if [[ ! -f "$(VK_LOADER_SRC)" ]]; then \
-		echo "error: $(VK_LOADER_SRC) not found - run 'make libvulkan' first" >&2; \
-		exit 1; \
-	fi
+# Copy/symlink the loader (and vulkaninfo, if built) into bin/ so the test
+# binaries resolve it rather than the system one.  On macOS, test binaries
+# use @executable_path rpath; on Linux, LD_LIBRARY_PATH=bin is set by the
+# report/run targets; on Windows, DLLs sit next to the executables.
+
+# Shared recipe for linking a loader variant into bin/. $(1) = source path.
 ifeq ($(VK_HOST_OS),windows)
-	cp -f "$(VK_LOADER_SRC)" bin/vulkan-1.dll
-	cp -f "$(VK_LOADER_SRC)" bin/vulkan-1-999-0-0-0.dll
+define do-link-vulkan
+	@mkdir -p bin
+	cp -f "$(1)" bin/vulkan-1.dll
+	cp -f "$(1)" bin/vulkan-1-999-0-0-0.dll
+endef
 else
-	ln -sf "$(PWD)/$(VK_LOADER_SRC)" $(word 2,$(VK_LOADER_LINKS))
+define do-link-vulkan
+	@mkdir -p bin
+	ln -sf "$(PWD)/$(1)" $(word 2,$(VK_LOADER_LINKS))
 	ln -sf "$(notdir $(word 2,$(VK_LOADER_LINKS)))" $(word 1,$(VK_LOADER_LINKS))
+endef
 endif
+
+link-vulkan:
+	$(call do-link-vulkan,$(VK_LOADER_SRC))
 	@if [[ -f "$(VK_TOOLS_SRC)" ]]; then \
 		echo "  installing $(VK_TOOLS_BIN)"; \
 		cp -f "$(VK_TOOLS_SRC)" "$(VK_TOOLS_BIN)"; \
 	fi
+
+link-vulkan-unpatched:
+	$(call do-link-vulkan,$(VK_LOADER_SRC_UNPATCHED))
 
 unlink-vulkan:
 	rm -f $(VK_LOADER_LINKS) $(VK_TOOLS_BIN)
@@ -371,10 +419,13 @@ report-metadata: | $(REPORT_HOST_DIR)
 		--version='vulkan_headers=$(VK_HEADERS_VERSION)' \
 		--vulkaninfo='$(VK_TOOLS_BIN)'
 
-# Unpatched variant: unlink the patched loader out of bin/ so the test
-# binaries resolve against the system Vulkan loader, build everything if
-# needed, then run each test binary in --json mode.
-report-unpatched: unlink-vulkan build | $(REPORT_HOST_DIR)
+# Unpatched variant: build the loader from the upstream merge-base, link it
+# into bin/, then run each test binary in --json mode.
+report-unpatched: export MVK_CONFIG_LOG_LEVEL=1
+ifneq ($(uname_S),Darwin)
+report-unpatched: export LD_LIBRARY_PATH=$(shell cd bin && pwd -P)
+endif
+report-unpatched: vulkan-loader-unpatched link-vulkan-unpatched build | $(REPORT_HOST_DIR)
 	$(PYTHON) scripts/collect-variant.py \
 		--variant=unpatched \
 		--bin-dir=bin \
@@ -382,12 +433,12 @@ report-unpatched: unlink-vulkan build | $(REPORT_HOST_DIR)
 		$(LOADER_FLAGS) \
 		--output='$(REPORT_HOST_DIR)/unpatched.json'
 
-# Patched variant: ensure the patched loader and vulkaninfo are built (via
-# vulkan-tools, which transitively depends on vulkan-loader and vkheaders),
-# link them into bin/, build the test binaries, then run each in --json mode.
+# Patched variant: build the loader from HEAD (with local patches), link it
+# into bin/, then run each test binary in --json mode.
 report-patched: export MVK_CONFIG_LOG_LEVEL=1
+ifneq ($(uname_S),Darwin)
 report-patched: export LD_LIBRARY_PATH=$(shell cd bin && pwd -P)
-report-patched: export DYLD_LIBRARY_PATH=$(shell cd bin && pwd -P)
+endif
 report-patched: vulkan-tools link-vulkan build | $(REPORT_HOST_DIR)
 	$(PYTHON) scripts/collect-variant.py \
 		--variant=patched \
