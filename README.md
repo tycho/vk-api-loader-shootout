@@ -80,525 +80,25 @@ Both patches are explained in detail at the end of this document. The patched
 source is available at [github.com/tycho/Vulkan-Loader](https://github.com/tycho/Vulkan-Loader/)
 and passes the full Vulkan-Loader test suite on Linux, Windows, and macOS.
 
+**Do not compare numbers across platforms.** Hardware, drivers, OS, and
+compiler flags all differ between the Linux, MinGW, and macOS test machines.
+The meaningful comparisons are *within* a single platform: loader vs. loader,
+and patched vs. unpatched on the same hardware.
+
 ### Linux
 
-| Project        | Version (git describe)      |
-|----------------|-----------------------------|
-| GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
-| GLAD (tycho)   | `2.0.8-91-g8092eae`   |
-| gloam          | `0.4.6`        |
-| Volk           | `1.4.341.0-21-g78463da`         |
-| xxHash         | `0.8.3`       |
-| Vulkan-Headers | `1.4.347-1-gf07ffc2`   |
-
-| Tool         | Name             | Version             |
-|--------------|------------------|---------------------|
-| Kernel       | `Linux`   | `6.19.8-1-hsw`      |
-| Architecture | `x86_64`   | `AMD Ryzen AI 9 HX 370 w/ Radeon 890M`    |
-| CC           | `clang`        | `22.1.1`   |
-| CXX          | `clang++`       | `22.1.1`  |
-
-| Variable     | Value         |
-|--------------|---------------|
-| `OPTFLAGS`   | `-O2 -fno-unroll-loops -march=x86-64-v2 -mtune=znver3 -g0` |
-| `CFLAGS`     | `-std=c17` |
-| `CXXFLAGS`   | `-std=c++20` |
-
-#### Unpatched libvulkan
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |          131985 |            439.95 |
-| Load device functions                      |        300 |          662356 |           2207.85 |
-| Init + load all functions                  |         30 |           95199 |           3173.30 |
-| Full VK context (libvulkan persistent)     |         30 |          296979 |           9899.30 |
-| Full VK context (libvulkan transient)      |         30 |          295954 |           9865.13 |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           11501 |             38.34 |
-| Load device functions                      |        300 |          123917 |            413.06 |
-| Init + load all functions                  |         30 |           30112 |           1003.73 |
-| Full VK context (libvulkan persistent)     |         30 |          209579 |           6985.97 |
-| Full VK context (libvulkan transient)      |         30 |          212722 |           7090.73 |
-
-[Gloam (discover API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           84656 |            282.19 |
-| Load device functions                      |        300 |          127428 |            424.76 |
-| Init + load all functions                  |         30 |           30673 |           1022.43 |
-| Full VK context (libvulkan persistent)     |         30 |          206029 |           6867.63 |
-| Full VK context (libvulkan transient)      |         30 |          207126 |           6904.20 |
-
-[Gloam (enabled-list API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            1546 |              5.15 |
-| Load device functions                      |        300 |           17556 |             58.52 |
-| Init + load all functions                  |         30 |            1926 |             64.20 |
-| Full VK context (libvulkan persistent)     |         30 |          173208 |           5773.60 |
-| Full VK context (libvulkan transient)      |         30 |          183514 |           6117.13 |
-
-[Volk](https://github.com/zeux/volk)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           18032 |             60.11 |
-| Load device functions                      |        300 |          144114 |            480.38 |
-| Init + load all functions                  |         30 |           16320 |            544.00 |
-| Full VK context (libvulkan persistent)     |         30 |          193046 |           6434.87 |
-| Full VK context (libvulkan transient)      |         30 |          193523 |           6450.77 |
-
-#### [Patched libvulkan](#libvulkan-is-actually-just-a-strcmp-benchmark)
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           21165 |             70.55 |
-| Load device functions                      |        300 |          298206 |            994.02 |
-| Init + load all functions                  |         30 |           36384 |           1212.80 |
-| Full VK context (libvulkan persistent)     |         30 |          181078 |           6035.93 |
-| Full VK context (libvulkan transient)      |         30 |          213964 |           7132.13 |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            3116 |             10.39 |
-| Load device functions                      |        300 |           20893 |             69.64 |
-| Init + load all functions                  |         30 |            3885 |            129.50 |
-| Full VK context (libvulkan persistent)     |         30 |          131024 |           4367.47 |
-| Full VK context (libvulkan transient)      |         30 |          192259 |           6408.63 |
-
-[Gloam (discover API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            7746 |             25.82 |
-| Load device functions                      |        300 |           25386 |             84.62 |
-| Init + load all functions                  |         30 |            3851 |            128.37 |
-| Full VK context (libvulkan persistent)     |         30 |          128862 |           4295.40 |
-| Full VK context (libvulkan transient)      |         30 |          181069 |           6035.63 |
-
-[Gloam (enabled-list API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |             809 |              2.70 |
-| Load device functions                      |        300 |            3068 |             10.23 |
-| Init + load all functions                  |         30 |             419 |             13.97 |
-| Full VK context (libvulkan persistent)     |         30 |          118096 |           3936.53 |
-| Full VK context (libvulkan transient)      |         30 |          166981 |           5566.03 |
-
-[Volk](https://github.com/zeux/volk)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            3947 |             13.16 |
-| Load device functions                      |        300 |           22154 |             73.85 |
-| Init + load all functions                  |         30 |            2647 |             88.23 |
-| Full VK context (libvulkan persistent)     |         30 |          125695 |           4189.83 |
-| Full VK context (libvulkan transient)      |         30 |          178109 |           5936.97 |
-
-#### Binary sizes
-
-Loader object sizes in bytes:
-```
-316288  obj/loader-glad-dav1dde.o
- 67192  obj/loader-glad-tycho.o
- 50488  obj/loader-gloam-discover.o
- 50488  obj/loader-gloam.o
-312912  obj/loader-volk.o
-```
-
-Test program sizes in bytes:
-```
-112992  bin/test-glad-dav1dde
- 80288  bin/test-glad-tycho
- 59808  bin/test-gloam
- 59792  bin/test-gloam-discover
-100664  bin/test-volk
-```
-
-Section sizes:
-```
-  text  data  bss   dec     hex    filename
-101267  832   6568  108667  1a87b  bin/test-glad-dav1dde
- 63900  7360  7040  78300   131dc  bin/test-glad-tycho
- 51890  840   7064  59794   e992   bin/test-gloam
- 50937  824   7056  58817   e5c1   bin/test-gloam-discover
- 91170  792   6040  98002   17ed2  bin/test-volk
-```
-
-#### Test hardware
-
-vulkaninfo
-```
-Devices:
-========
-GPU0:
-	apiVersion         = 1.4.346
-	driverVersion      = 26.0.99
-	vendorID           = 0x1002
-	deviceID           = 0x150e
-	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
-	deviceName         = AMD Radeon 890M Graphics (RADV STRIX1)
-	driverID           = DRIVER_ID_MESA_RADV
-	driverName         = radv
-	driverInfo         = Mesa 26.1.0-devel (git-ee031d67b4)
-	conformanceVersion = 1.4.0.0
-	deviceUUID         = 00000000-c100-0000-0000-000000000000
-	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
-```
+Tested on AMD Ryzen AI MAX+ PRO 395 (x86\_64, RADV/Mesa).
+**[Full results: Linux report](reports/linux.md)**
 
 ### MinGW
 
-| Project        | Version (git describe)      |
-|----------------|-----------------------------|
-| GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
-| GLAD (tycho)   | `2.0.8-91-g8092eae`   |
-| gloam          | `0.4.6`        |
-| Volk           | `1.4.341.0-21-g78463da`         |
-| xxHash         | `0.8.3`       |
-| Vulkan-Headers | `1.4.347-1-gf07ffc2`   |
-
-| Tool         | Name             | Version             |
-|--------------|------------------|---------------------|
-| Kernel       | `MINGW64_NT-10.0-26200`   | `3.6.7-6e9c4de9.x86_64`      |
-| Architecture | `x86_64`   | `AMD Ryzen 9 9950X 16-Core Processor`    |
-| CC           | `clang`        | `21.1.8`   |
-| CXX          | `clang++`       | `21.1.8`  |
-
-| Variable     | Value         |
-|--------------|---------------|
-| `OPTFLAGS`   | `-O2 -fno-unroll-loops -march=x86-64-v2 -mtune=znver3 -g0` |
-| `CFLAGS`     | `-std=c17` |
-| `CXXFLAGS`   | `-std=c++20` |
-
-#### Unpatched libvulkan
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |          653799 |           2179.33 |
-| Load device functions                      |        300 |         1185605 |           3952.02 |
-| Init + load all functions                  |         30 |          247942 |           8264.73 |
-| Full VK context (libvulkan persistent)     |         30 |         1365128 |          45504.27 |
-| Full VK context (libvulkan transient)      |         30 |         1466317 |          48877.23 |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            8477 |             28.26 |
-| Load device functions                      |        300 |          110480 |            368.27 |
-| Init + load all functions                  |         30 |          126871 |           4229.03 |
-| Full VK context (libvulkan persistent)     |         30 |         1166991 |          38899.70 |
-| Full VK context (libvulkan transient)      |         30 |         1187219 |          39573.97 |
-
-[Gloam (discover API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |          488904 |           1629.68 |
-| Load device functions                      |        300 |          122468 |            408.23 |
-| Init + load all functions                  |         30 |          123900 |           4130.00 |
-| Full VK context (libvulkan persistent)     |         30 |         1169809 |          38993.63 |
-| Full VK context (libvulkan transient)      |         30 |         1189663 |          39655.43 |
-
-[Gloam (enabled-list API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            1416 |              4.72 |
-| Load device functions                      |        300 |           12038 |             40.13 |
-| Init + load all functions                  |         30 |            1372 |             45.73 |
-| Full VK context (libvulkan persistent)     |         30 |         1093681 |          36456.03 |
-| Full VK context (libvulkan transient)      |         30 |         1108127 |          36937.57 |
-
-[Volk](https://github.com/zeux/volk)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           20096 |             66.99 |
-| Load device functions                      |        300 |          156321 |            521.07 |
-| Init + load all functions                  |         30 |           18837 |            627.90 |
-| Full VK context (libvulkan persistent)     |         30 |         1100724 |          36690.80 |
-| Full VK context (libvulkan transient)      |         30 |         1131219 |          37707.30 |
-
-#### [Patched libvulkan](#libvulkan-is-actually-just-a-strcmp-benchmark)
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           30988 |            103.29 |
-| Load device functions                      |        300 |          220176 |            733.92 |
-| Init + load all functions                  |         30 |           29325 |            977.50 |
-| Full VK context (libvulkan persistent)     |         30 |          935127 |          31170.90 |
-| Full VK context (libvulkan transient)      |         30 |         1267788 |          42259.60 |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            2026 |              6.75 |
-| Load device functions                      |        300 |           14464 |             48.21 |
-| Init + load all functions                  |         30 |            3179 |            105.97 |
-| Full VK context (libvulkan persistent)     |         30 |          886126 |          29537.53 |
-| Full VK context (libvulkan transient)      |         30 |         1234728 |          41157.60 |
-
-[Gloam (discover API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            6924 |             23.08 |
-| Load device functions                      |        300 |           17728 |             59.09 |
-| Init + load all functions                  |         30 |            3174 |            105.80 |
-| Full VK context (libvulkan persistent)     |         30 |          811194 |          27039.80 |
-| Full VK context (libvulkan transient)      |         30 |         1130850 |          37695.00 |
-
-[Gloam (enabled-list API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |             704 |              2.35 |
-| Load device functions                      |        300 |            3044 |             10.15 |
-| Init + load all functions                  |         30 |             394 |             13.13 |
-| Full VK context (libvulkan persistent)     |         30 |          888302 |          29610.07 |
-| Full VK context (libvulkan transient)      |         30 |         1148792 |          38293.07 |
-
-[Volk](https://github.com/zeux/volk)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            3391 |             11.30 |
-| Load device functions                      |        300 |           17315 |             57.72 |
-| Init + load all functions                  |         30 |            2080 |             69.33 |
-| Full VK context (libvulkan persistent)     |         30 |          889205 |          29640.17 |
-| Full VK context (libvulkan transient)      |         30 |         1201134 |          40037.80 |
-
-#### Binary sizes
-
-Loader object sizes in bytes:
-```
-192545  obj/loader-glad-dav1dde.o
- 52988  obj/loader-glad-tycho.o
- 46689  obj/loader-gloam.o
- 46689  obj/loader-gloam-discover.o
-221552  obj/loader-volk.o
-```
-
-Test program sizes in bytes:
-```
-114688  bin/test-glad-dav1dde.exe
- 66048  bin/test-glad-tycho.exe
- 64512  bin/test-gloam.exe
- 64000  bin/test-gloam-discover.exe
-103936  bin/test-volk.exe
-```
-
-Section sizes:
-```
- text  data   bss  dec     hex    filename
-72438  39600  0    112038  1b5a6  bin/test-glad-dav1dde.exe
-16422  46424  0    62846   f57e   bin/test-glad-tycho.exe
-20374  41504  0    61878   f1b6   bin/test-gloam.exe
-19766  41432  0    61198   ef0e   bin/test-gloam-discover.exe
-72166  29536  0    101702  18d46  bin/test-volk.exe
-```
-
-#### Test hardware
-
-vulkaninfo
-```
-Devices:
-========
-GPU0:
-        apiVersion         = 1.4.315
-        driverVersion      = 2.0.353
-        vendorID           = 0x1002
-        deviceID           = 0x13c0
-        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
-        deviceName         = AMD Radeon(TM) Graphics
-        driverID           = DRIVER_ID_AMD_PROPRIETARY
-        driverName         = AMD proprietary driver
-        driverInfo         = 26.4.1 (AMD proprietary shader compiler)
-        conformanceVersion = 1.4.0.0
-        deviceUUID         = 00000000-7900-0000-0000-000000000000
-        driverUUID         = 414d442d-5749-4e2d-4452-560000000000
-```
+Tested on AMD Ryzen AI MAX+ PRO 395 (x86\_64, AMD proprietary driver, Windows).
+**[Full results: MinGW report](reports/mingw.md)**
 
 ### macOS
 
-| Project        | Version (git describe)      |
-|----------------|-----------------------------|
-| GLAD (dav1dde) | `2.0.8-8-ga4ca574` |
-| GLAD (tycho)   | `2.0.8-91-g8092eae`   |
-| gloam          | `0.4.6`        |
-| Volk           | `1.4.341.0-21-g78463da`         |
-| xxHash         | `0.8.3`       |
-| Vulkan-Headers | `1.4.347-1-gf07ffc2`   |
-
-| Tool         | Name             | Version             |
-|--------------|------------------|---------------------|
-| Kernel       | `Darwin`   | `25.4.0`      |
-| Architecture | `arm64`   | `Apple M5`    |
-| CC           | `clang`        | `21.0.0`   |
-| CXX          | `clang++`       | `21.0.0`  |
-
-| Variable     | Value         |
-|--------------|---------------|
-| `OPTFLAGS`   | `-O2 -fno-unroll-loops -mcpu=native -g0` |
-| `CFLAGS`     | `-std=c17` |
-| `CXXFLAGS`   | `-std=c++20` |
-
-#### Unpatched libvulkan
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |          160976 |            536.59 |
-| Load device functions                      |        300 |          362970 |           1209.90 |
-| Init + load all functions                  |         30 |           68031 |           2267.70 |
-| Full VK context (libvulkan persistent)     |         30 |          124029 |           4134.30 |
-| Full VK context (libvulkan transient)      |         30 |          134474 |           4482.47 |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            6615 |             22.05 |
-| Load device functions                      |        300 |           41091 |            136.97 |
-| Init + load all functions                  |         30 |           22935 |            764.50 |
-| Full VK context (libvulkan persistent)     |         30 |           69459 |           2315.30 |
-| Full VK context (libvulkan transient)      |         30 |           78212 |           2607.07 |
-
-[Gloam (discover API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           90102 |            300.34 |
-| Load device functions                      |        300 |           44001 |            146.67 |
-| Init + load all functions                  |         30 |           22613 |            753.77 |
-| Full VK context (libvulkan persistent)     |         30 |           69779 |           2325.97 |
-| Full VK context (libvulkan transient)      |         30 |           78634 |           2621.13 |
-
-[Gloam (enabled-list API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            1308 |              4.36 |
-| Load device functions                      |        300 |            8805 |             29.35 |
-| Init + load all functions                  |         30 |            1006 |             33.53 |
-| Full VK context (libvulkan persistent)     |         30 |           54899 |           1829.97 |
-| Full VK context (libvulkan transient)      |         30 |           64270 |           2142.33 |
-
-[Volk](https://github.com/zeux/volk)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           17161 |             57.20 |
-| Load device functions                      |        300 |          100753 |            335.84 |
-| Init + load all functions                  |         30 |           11457 |            381.90 |
-| Full VK context (libvulkan persistent)     |         30 |           67539 |           2251.30 |
-| Full VK context (libvulkan transient)      |         30 |           76867 |           2562.23 |
-
-#### [Patched libvulkan](#libvulkan-is-actually-just-a-strcmp-benchmark)
-
-[GLAD (dav1dde)](https://github.com/Dav1dde/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |           61025 |            203.42 |
-| Load device functions                      |        300 |          173327 |            577.76 |
-| Init + load all functions                  |         30 |           31313 |           1043.77 |
-| Full VK context (libvulkan persistent)     |         30 |           74452 |           2481.73 |
-| Full VK context (libvulkan transient)      |         30 |          100349 |           3344.97 |
-
-[GLAD (tycho)](https://github.com/tycho/glad)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |             830 |              2.77 |
-| Load device functions                      |        300 |            2605 |              8.68 |
-| Init + load all functions                  |         30 |            2534 |             84.47 |
-| Full VK context (libvulkan persistent)     |         30 |           43787 |           1459.57 |
-| Full VK context (libvulkan transient)      |         30 |           68205 |           2273.50 |
-
-[Gloam (discover API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |            6628 |             22.09 |
-| Load device functions                      |        300 |            3901 |             13.00 |
-| Init + load all functions                  |         30 |            2480 |             82.67 |
-| Full VK context (libvulkan persistent)     |         30 |           43446 |           1448.20 |
-| Full VK context (libvulkan transient)      |         30 |           68269 |           2275.63 |
-
-[Gloam (enabled-list API)](https://github.com/tycho/gloam)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |             326 |              1.09 |
-| Load device functions                      |        300 |             937 |              3.12 |
-| Init + load all functions                  |         30 |             148 |              4.93 |
-| Full VK context (libvulkan persistent)     |         30 |           43004 |           1433.47 |
-| Full VK context (libvulkan transient)      |         30 |           66503 |           2216.77 |
-
-[Volk](https://github.com/zeux/volk)
-| Task                                       | Iterations | Total Time (µs) | Average Time (µs) |
-|--------------------------------------------|------------|-----------------|-------------------|
-| Load instance functions                    |        300 |             910 |              3.03 |
-| Load device functions                      |        300 |            4061 |             13.54 |
-| Init + load all functions                  |         30 |             517 |             17.23 |
-| Full VK context (libvulkan persistent)     |         30 |           42016 |           1400.53 |
-| Full VK context (libvulkan transient)      |         30 |           67531 |           2251.03 |
-
-#### Binary sizes
-
-Loader object sizes in bytes:
-```
-275592  obj/loader-glad-dav1dde.o
- 74024  obj/loader-glad-tycho.o
- 47432  obj/loader-gloam-discover.o
- 47432  obj/loader-gloam.o
-257360  obj/loader-volk.o
-```
-
-Test program sizes in bytes:
-```
-161344  bin/test-glad-dav1dde
- 70032  bin/test-glad-tycho
- 86760  bin/test-gloam
- 70208  bin/test-gloam-discover
-119208  bin/test-volk
-```
-
-Section sizes:
-```
-__TEXT  __DATA  __OBJC  others      dec         hex        
-114688  16384   0       4295016448  4295147520  10002c000  bin/test-glad-dav1dde
- 49152  16384   0       4295000064  4295065600  100018000  bin/test-glad-tycho
- 65536  16384   0       4295000064  4295081984  10001c000  bin/test-gloam
- 49152  16384   0       4295000064  4295065600  100018000  bin/test-gloam-discover
- 98304  16384   0       4295000064  4295114752  100024000  bin/test-volk
-```
-
-#### Test hardware
-
-vulkaninfo
-```
-Devices:
-========
-GPU0:
-	apiVersion         = 1.4.334
-	driverVersion      = 0.2.2209
-	vendorID           = 0x106b
-	deviceID           = 0x1a04020a
-	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
-	deviceName         = Apple M5
-	driverID           = DRIVER_ID_MOLTENVK
-	driverName         = MoltenVK
-	driverInfo         = 1.4.1
-	conformanceVersion = 1.4.4.0
-	deviceUUID         = 0000106b-1a04-020a-0000-000000000000
-	driverUUID         = 4d564b00-0000-28a1-1a04-020a00000000
-GPU1:
-	apiVersion         = 1.3.340
-	driverVersion      = 26.0.99
-	vendorID           = 0x106b
-	deviceID           = 0x0064
-	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
-	deviceName         = Apple M5
-	driverID           = DRIVER_ID_MESA_KOSMICKRISP
-	driverName         = KosmicKrisp
-	driverInfo         = vulkan-sdk-1.4.341.1
-	conformanceVersion = 1.4.3.2
-	deviceUUID         = 60050000-0100-0000-0000-000000000000
-	driverUUID         = 258801e9-778a-3af1-b03f-46cef7603a2a
-```
+Tested on Apple M5 (arm64, MoltenVK + KosmicKrisp).
+**[Full results: macOS report](reports/macos.md)**
 
 ## Analysis
 
@@ -624,11 +124,11 @@ loading and unloading every ICD and scanning all implicit layers each time they
 are called.
 
 The impact is visible in the "Init + load all functions" row (Linux,
-unpatched): GLAD (tycho) at ~1004µs and Gloam discover at ~1022µs, versus
-~64µs for Gloam enabled-list which skips enumeration entirely. The
+unpatched): GLAD (tycho) at ~793µs and Gloam discover at ~801µs, versus
+~38µs for Gloam enabled-list which skips enumeration entirely. The
 device-load numbers are similarly inflated because
 `vkEnumerateDeviceExtensionProperties` runs during that phase: Gloam discover
-at ~425µs versus ~59µs for Gloam enabled-list.
+at ~280µs versus ~34µs for Gloam enabled-list.
 
 Volk sidesteps this cost entirely because it does no extension detection at
 all — but this comes with trade-offs described below.
@@ -688,9 +188,9 @@ The difference is substantial. Using the Linux unpatched-libvulkan numbers:
 
 | Metric                           | Gloam discover | Gloam enabled-list | Speedup |
 |----------------------------------|---------------:|-------------------:|--------:|
-| Load instance functions (avg)    | 282.19µs       | 5.15µs             | ~55×    |
-| Load device functions (avg)      | 424.76µs       | 58.52µs            | ~7×     |
-| Init + load all functions (avg)  | 1022.43µs      | 64.20µs            | ~16×    |
+| Load instance functions (avg)    | 239.85µs       | 3.17µs             | ~76×    |
+| Load device functions (avg)      | 280.25µs       | 34.07µs            | ~8×     |
+| Init + load all functions (avg)  | 800.73µs       | 38.33µs            | ~21×    |
 
 The performance gap comes from loading only the PFNs for enabled features
 and extensions rather than the entire spec. The init improvement
@@ -728,10 +228,10 @@ Using the Linux numbers:
 
 | Metric                              | Volk     | Gloam enabled | Speedup |
 |-------------------------------------|---------:|-------------:|--------:|
-| Load device (avg, unpatched)        | 480.38µs | 58.52µs       | ~8×     |
-| Load device (avg, patched)          | 73.85µs  | 10.23µs       | ~7×     |
-| Init + load all (avg, unpatched)    | 544.00µs | 64.20µs       | ~8×     |
-| Init + load all (avg, patched)      | 88.23µs  | 13.97µs       | ~6×     |
+| Load device (avg, unpatched)        | 347.14µs | 34.07µs       | ~10×    |
+| Load device (avg, patched)          | 45.47µs  | 5.85µs        | ~8×     |
+| Init + load all (avg, unpatched)    | 390.50µs | 38.33µs       | ~10×    |
+| Init + load all (avg, patched)      | 54.63µs  | 7.83µs        | ~7×     |
 
 The gap is consistent across patched and unpatched builds: fewer lookups is
 fewer lookups regardless of how fast each individual lookup is. With the
@@ -825,16 +325,16 @@ where the hash lookup applies:
 
 | Loader                | Metric                            | Unpatched    | Patched     | Speedup |
 |-----------------------|-----------------------------------|-------------:|------------:|--------:|
-| GLAD (dav1dde)        | Load device functions (avg)       | 2207.85µs    | 994.02µs    | ~2×     |
-| GLAD (dav1dde)        | Init + load all functions (avg)   | 3173.30µs    | 1212.80µs   | ~3×     |
-| GLAD (tycho)          | Load device functions (avg)       | 413.06µs     | 69.64µs     | ~6×     |
-| GLAD (tycho)          | Init + load all functions (avg)   | 1003.73µs    | 129.50µs    | ~8×     |
-| Gloam (discover)      | Load device functions (avg)       | 424.76µs     | 84.62µs     | ~5×     |
-| Gloam (discover)      | Init + load all functions (avg)   | 1022.43µs    | 128.37µs    | ~8×     |
-| Gloam (enabled-list)  | Load device functions (avg)       | 58.52µs      | 10.23µs     | ~6×     |
-| Gloam (enabled-list)  | Init + load all functions (avg)   | 64.20µs      | 13.97µs     | ~5×    |
-| Volk                  | Load device functions (avg)       | 480.38µs     | 73.85µs     | ~7×     |
-| Volk                  | Init + load all functions (avg)   | 544.00µs     | 88.23µs     | ~6×     |
+| GLAD (dav1dde)        | Load device functions (avg)       | 1427.07µs    | 640.17µs    | ~2×     |
+| GLAD (dav1dde)        | Init + load all functions (avg)   | 2219.37µs    | 784.20µs    | ~3×     |
+| GLAD (tycho)          | Load device functions (avg)       | 253.82µs     | 39.85µs     | ~6×     |
+| GLAD (tycho)          | Init + load all functions (avg)   | 792.57µs     | 76.13µs     | ~10×    |
+| Gloam (discover)      | Load device functions (avg)       | 280.25µs     | 49.87µs     | ~6×     |
+| Gloam (discover)      | Init + load all functions (avg)   | 800.73µs     | 76.20µs     | ~11×    |
+| Gloam (enabled-list)  | Load device functions (avg)       | 34.07µs      | 5.85µs      | ~6×     |
+| Gloam (enabled-list)  | Init + load all functions (avg)   | 38.33µs      | 7.83µs      | ~5×     |
+| Volk                  | Load device functions (avg)       | 347.14µs     | 45.47µs     | ~8×     |
+| Volk                  | Init + load all functions (avg)   | 390.50µs     | 54.63µs     | ~7×     |
 
 The improvement is universal. Even the fastest loader (Gloam enabled-list),
 which makes the fewest calls into libvulkan, sees a 5–6× speedup. Loaders that
@@ -906,12 +406,12 @@ Using the Linux numbers (Volk, as a representative loader):
 
 | Metric                               | Unpatched    | Patched     |
 |--------------------------------------|-------------:|------------:|
-| Full VK context, persistent (avg)    | 6434.87µs    | 4189.83µs   |
-| Full VK context, transient (avg)     | 6450.77µs    | 5936.97µs   |
-| Persistent vs transient gap          | ~16µs        | ~1747µs     |
+| Full VK context, persistent (avg)    | 8759.50µs    | 5724.77µs   |
+| Full VK context, transient (avg)     | 8349.53µs    | 8238.67µs   |
+| Persistent vs transient gap          | ~410µs       | ~2514µs     |
 
-The unpatched gap of ~16µs is noise — the scan happens either way. The patched
-gap of ~1747µs is the cost of rebuilding the manifest cache from scratch versus
+The unpatched gap of ~410µs is noise — the scan happens either way. The patched
+gap of ~2514µs is the cost of rebuilding the manifest cache from scratch versus
 a cheap revalidation.
 
 On Windows, the effect is more pronounced due to the higher cost of registry
