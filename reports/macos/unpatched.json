@@ -4,7 +4,7 @@
     "volk": {
       "binary": "test-volk",
       "binary_size": 136312,
-      "loader_object_size": 259216,
+      "loader_object_size": 265936,
       "sections": {
         "text": 114688,
         "data": 16384,
@@ -13,28 +13,28 @@
       "benchmarks": {
         "load_instance": {
           "iterations": 300,
-          "total_us": 17667,
-          "avg_us": 58.89
+          "total_us": 2897,
+          "avg_us": 9.66
         },
         "load_device": {
           "iterations": 300,
-          "total_us": 101404,
-          "avg_us": 338.01
+          "total_us": 5096,
+          "avg_us": 16.99
         },
         "init_load_all": {
           "iterations": 30,
-          "total_us": 11395,
-          "avg_us": 379.83
+          "total_us": 852,
+          "avg_us": 28.4
         },
         "full_ctx_persistent": {
           "iterations": 30,
-          "total_us": 59776,
-          "avg_us": 1992.53
+          "total_us": 49718,
+          "avg_us": 1657.27
         },
         "full_ctx_transient": {
           "iterations": 30,
-          "total_us": 69564,
-          "avg_us": 2318.8
+          "total_us": 59054,
+          "avg_us": 1968.47
         }
       }
     },
@@ -50,28 +50,28 @@
       "benchmarks": {
         "load_instance": {
           "iterations": 300,
-          "total_us": 140404,
-          "avg_us": 468.01
+          "total_us": 120261,
+          "avg_us": 400.87
         },
         "load_device": {
           "iterations": 300,
-          "total_us": 327463,
-          "avg_us": 1091.54
+          "total_us": 228876,
+          "avg_us": 762.92
         },
         "init_load_all": {
           "iterations": 30,
-          "total_us": 59268,
-          "avg_us": 1975.6
+          "total_us": 46651,
+          "avg_us": 1555.03
         },
         "full_ctx_persistent": {
           "iterations": 30,
-          "total_us": 107488,
-          "avg_us": 3582.93
+          "total_us": 97090,
+          "avg_us": 3236.33
         },
         "full_ctx_transient": {
           "iterations": 30,
-          "total_us": 117710,
-          "avg_us": 3923.67
+          "total_us": 106687,
+          "avg_us": 3556.23
         }
       }
     },
@@ -87,35 +87,35 @@
       "benchmarks": {
         "load_instance": {
           "iterations": 300,
-          "total_us": 6828,
-          "avg_us": 22.76
+          "total_us": 1469,
+          "avg_us": 4.9
         },
         "load_device": {
           "iterations": 300,
-          "total_us": 42473,
-          "avg_us": 141.58
+          "total_us": 3806,
+          "avg_us": 12.69
         },
         "init_load_all": {
           "iterations": 30,
-          "total_us": 17255,
-          "avg_us": 575.17
+          "total_us": 12837,
+          "avg_us": 427.9
         },
         "full_ctx_persistent": {
           "iterations": 30,
-          "total_us": 60208,
-          "avg_us": 2006.93
+          "total_us": 56515,
+          "avg_us": 1883.83
         },
         "full_ctx_transient": {
           "iterations": 30,
-          "total_us": 68815,
-          "avg_us": 2293.83
+          "total_us": 64794,
+          "avg_us": 2159.8
         }
       }
     },
     "gloam-discover": {
       "binary": "test-gloam-discover",
-      "binary_size": 87360,
-      "loader_object_size": 47912,
+      "binary_size": 87568,
+      "loader_object_size": 54320,
       "sections": {
         "text": 65536,
         "data": 16384,
@@ -124,35 +124,35 @@
       "benchmarks": {
         "load_instance": {
           "iterations": 300,
-          "total_us": 61126,
-          "avg_us": 203.75
+          "total_us": 54364,
+          "avg_us": 181.21
         },
         "load_device": {
           "iterations": 300,
-          "total_us": 44569,
-          "avg_us": 148.56
+          "total_us": 5223,
+          "avg_us": 17.41
         },
         "init_load_all": {
           "iterations": 30,
-          "total_us": 17290,
-          "avg_us": 576.33
+          "total_us": 12684,
+          "avg_us": 422.8
         },
         "full_ctx_persistent": {
           "iterations": 30,
-          "total_us": 60305,
-          "avg_us": 2010.17
+          "total_us": 56794,
+          "avg_us": 1893.13
         },
         "full_ctx_transient": {
           "iterations": 30,
-          "total_us": 68905,
-          "avg_us": 2296.83
+          "total_us": 65302,
+          "avg_us": 2176.73
         }
       }
     },
     "gloam-enabled": {
       "binary": "test-gloam-enabled",
-      "binary_size": 87360,
-      "loader_object_size": 47912,
+      "binary_size": 87568,
+      "loader_object_size": 54320,
       "sections": {
         "text": 65536,
         "data": 16384,
@@ -161,28 +161,28 @@
       "benchmarks": {
         "load_instance": {
           "iterations": 300,
-          "total_us": 1614,
-          "avg_us": 5.38
+          "total_us": 340,
+          "avg_us": 1.13
         },
         "load_device": {
           "iterations": 300,
-          "total_us": 9012,
-          "avg_us": 30.04
+          "total_us": 1628,
+          "avg_us": 5.43
         },
         "init_load_all": {
           "iterations": 30,
-          "total_us": 1057,
-          "avg_us": 35.23
+          "total_us": 216,
+          "avg_us": 7.2
         },
         "full_ctx_persistent": {
           "iterations": 30,
-          "total_us": 48904,
-          "avg_us": 1630.13
+          "total_us": 49558,
+          "avg_us": 1651.93
         },
         "full_ctx_transient": {
           "iterations": 30,
-          "total_us": 57386,
-          "avg_us": 1912.87
+          "total_us": 58337,
+          "avg_us": 1944.57
         }
       }
     }
