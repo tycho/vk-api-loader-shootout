@@ -7,29 +7,29 @@
 <text x="480.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">10,000µs</text>
 <line x1="760.0" y1="64" x2="760.0" y2="306" stroke="#cbd5e1" stroke-width="1"/>
 <text x="760.0" y="322" text-anchor="middle" fill="#64748b" font-size="11">100,000µs</text>
-<text x="190" y="92" text-anchor="end" fill="#64748b">GLAD (tycho)</text>
-<rect x="200" y="76" width="265.9" height="12" fill="#94a3b8"/>
-<text x="470.9" y="86" fill="#64748b" font-size="11">8,905.7µs</text>
-<rect x="200" y="92" width="211.3" height="12" fill="#10b981"/>
-<text x="416.3" y="102" fill="#64748b" font-size="11">5,681.7µs</text>
-<text x="190" y="138" text-anchor="end" fill="#64748b">Volk</text>
-<rect x="200" y="122" width="263.9" height="12" fill="#94a3b8"/>
-<text x="468.9" y="132" fill="#64748b" font-size="11">8,759.5µs</text>
-<rect x="200" y="138" width="212.2" height="12" fill="#10b981"/>
-<text x="417.2" y="148" fill="#64748b" font-size="11">5,724.8µs</text>
-<text x="190" y="184" text-anchor="end" fill="#64748b">Gloam (discover)</text>
-<rect x="200" y="168" width="265.9" height="12" fill="#94a3b8"/>
-<text x="470.9" y="178" fill="#64748b" font-size="11">8,905.2µs</text>
-<rect x="200" y="184" width="213.7" height="12" fill="#10b981"/>
-<text x="418.7" y="194" fill="#64748b" font-size="11">5,798.7µs</text>
-<text x="190" y="230" text-anchor="end" fill="#64748b">Gloam (enabled-list)</text>
-<rect x="200" y="214" width="255.7" height="12" fill="#94a3b8"/>
-<text x="460.7" y="224" fill="#64748b" font-size="11">8,187.2µs</text>
-<rect x="200" y="230" width="216.0" height="12" fill="#10b981"/>
-<text x="421.0" y="240" fill="#64748b" font-size="11">5,905.7µs</text>
+<text x="190" y="92" text-anchor="end" fill="#64748b">Gloam (enabled-list)</text>
+<rect x="200" y="76" width="241.2" height="12" fill="#94a3b8"/>
+<text x="446.2" y="86" fill="#64748b" font-size="11">7,265.8µs</text>
+<rect x="200" y="92" width="179.6" height="12" fill="#10b981"/>
+<text x="384.6" y="102" fill="#64748b" font-size="11">4,380.8µs</text>
+<text x="190" y="138" text-anchor="end" fill="#64748b">GLAD (tycho)</text>
+<rect x="200" y="122" width="261.7" height="12" fill="#94a3b8"/>
+<text x="466.7" y="132" fill="#64748b" font-size="11">8,599.9µs</text>
+<rect x="200" y="138" width="181.2" height="12" fill="#10b981"/>
+<text x="386.2" y="148" fill="#64748b" font-size="11">4,437.3µs</text>
+<text x="190" y="184" text-anchor="end" fill="#64748b">Volk</text>
+<rect x="200" y="168" width="243.3" height="12" fill="#94a3b8"/>
+<text x="448.3" y="178" fill="#64748b" font-size="11">7,396.9µs</text>
+<rect x="200" y="184" width="189.1" height="12" fill="#10b981"/>
+<text x="394.1" y="194" fill="#64748b" font-size="11">4,734.5µs</text>
+<text x="190" y="230" text-anchor="end" fill="#64748b">Gloam (discover)</text>
+<rect x="200" y="214" width="260.5" height="12" fill="#94a3b8"/>
+<text x="465.5" y="224" fill="#64748b" font-size="11">8,515.6µs</text>
+<rect x="200" y="230" width="192.2" height="12" fill="#10b981"/>
+<text x="397.2" y="240" fill="#64748b" font-size="11">4,857.0µs</text>
 <text x="190" y="276" text-anchor="end" fill="#64748b">GLAD (dav1dde)</text>
-<rect x="200" y="260" width="285.6" height="12" fill="#94a3b8"/>
-<text x="490.6" y="270" fill="#64748b" font-size="11">10,469.8µs</text>
-<rect x="200" y="276" width="228.9" height="12" fill="#10b981"/>
-<text x="433.9" y="286" fill="#64748b" font-size="11">6,570.3µs</text>
+<rect x="200" y="260" width="281.7" height="12" fill="#94a3b8"/>
+<text x="486.7" y="270" fill="#64748b" font-size="11">10,140.0µs</text>
+<rect x="200" y="276" width="219.3" height="12" fill="#10b981"/>
+<text x="424.3" y="286" fill="#64748b" font-size="11">6,070.0µs</text>
 </svg>

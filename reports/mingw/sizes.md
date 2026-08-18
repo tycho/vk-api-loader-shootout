@@ -4,9 +4,9 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 
 | Loader               | Loader .o |  Binary |   text |   data | bss |
 |----------------------|----------:|--------:|-------:|-------:|----:|
-| Gloam (discover)     |    46,745 |  69,120 | 22,742 | 43,508 |   0 |
-| Gloam (enabled-list) |    46,745 |  70,144 | 23,782 | 43,604 |   0 |
-| GLAD (tycho)         |    53,072 |  70,656 | 19,574 | 48,220 |   0 |
-| Volk                 |   223,294 | 110,592 | 75,830 | 31,532 |   0 |
-| GLAD (dav1dde)       |   192,597 | 120,320 | 76,006 | 41,372 |   0 |
+| GLAD (tycho)         |    53,072 |  67,072 | 17,366 | 47,404 |   0 |
+| Gloam (discover)     |    53,163 |  70,144 | 23,286 | 44,820 |   0 |
+| Gloam (enabled-list) |    53,163 |  71,168 | 24,326 | 44,916 |   0 |
+| Volk                 |   229,029 | 108,032 | 75,206 | 31,224 |   0 |
+| GLAD (dav1dde)       |   192,597 | 116,736 | 73,798 | 40,588 |   0 |
 

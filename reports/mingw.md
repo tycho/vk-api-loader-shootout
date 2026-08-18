@@ -20,11 +20,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Task                                   | Winner                   | Patched avg | Unpatched avg | Patch speedup |
 |----------------------------------------|--------------------------|------------:|--------------:|--------------:|
-| Load instance functions                | **Gloam (enabled-list)** |      1.34µs |        5.31µs |          4.0× |
-| Load device functions                  | **Gloam (enabled-list)** |      3.46µs |       45.36µs |         13.1× |
-| Init + load all functions              | **Gloam (enabled-list)** |      5.43µs |       49.57µs |          9.1× |
-| Full VK context (libvulkan persistent) | **Volk**                 |  22701.10µs |    34081.53µs |          1.5× |
-| Full VK context (libvulkan transient)  | **Volk**                 |  33704.73µs |    34741.27µs |          1.0× |
+| Load instance functions                | **Gloam (enabled-list)** |      0.97µs |        5.08µs |          5.2× |
+| Load device functions                  | **Gloam (enabled-list)** |      4.28µs |       46.21µs |         10.8× |
+| Init + load all functions              | **Gloam (enabled-list)** |      5.83µs |       54.20µs |          9.3× |
+| Full VK context (libvulkan persistent) | **Gloam (discover)**     |  23913.73µs |    39178.07µs |          1.6× |
+| Full VK context (libvulkan transient)  | **Gloam (enabled-list)** |  35731.30µs |    36125.40µs |          1.0× |
 
 
 ## Task detail
@@ -33,11 +33,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader                   | Unpatched |  Patched | Patch speedup | vs. fastest |
 |--------------------------|----------:|---------:|--------------:|------------:|
-| **Gloam (enabled-list)** |    5.31µs |   1.34µs |          4.0× |        1.0× |
-| Volk                     |   70.13µs |   2.99µs |         23.5× |        2.2× |
-| GLAD (tycho)             |   28.85µs |   3.05µs |          9.5× |        2.3× |
-| Gloam (discover)         | 1179.97µs |  20.36µs |         58.0× |       15.2× |
-| GLAD (dav1dde)           | 1558.04µs | 100.98µs |         15.4× |       75.4× |
+| **Gloam (enabled-list)** |    5.08µs |   0.97µs |          5.2× |        1.0× |
+| Volk                     |   75.59µs |   3.12µs |         24.2× |        3.2× |
+| GLAD (tycho)             |   32.11µs |   3.17µs |         10.1× |        3.3× |
+| Gloam (discover)         | 1249.52µs |  21.08µs |         59.3× |       21.7× |
+| GLAD (dav1dde)           | 1691.24µs | 106.91µs |         15.8× |        110× |
 
 
 ![Load instance functions (mingw)](mingw/charts/load_instance.svg)
@@ -46,24 +46,24 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader                   | Unpatched |  Patched | Patch speedup | vs. fastest |
 |--------------------------|----------:|---------:|--------------:|------------:|
-| **Gloam (enabled-list)** |   45.36µs |   3.46µs |         13.1× |        1.0× |
-| GLAD (tycho)             |  389.72µs |  12.28µs |         31.7× |        3.5× |
-| Volk                     |  491.41µs |  14.57µs |         33.7× |        4.2× |
-| Gloam (discover)         |  423.43µs |  23.99µs |         17.7× |        6.9× |
-| GLAD (dav1dde)           | 3544.73µs | 724.25µs |          4.9× |        209× |
+| **Gloam (enabled-list)** |   46.21µs |   4.28µs |         10.8× |        1.0× |
+| Volk                     |  541.21µs |  10.15µs |         53.3× |        2.4× |
+| GLAD (tycho)             |  433.67µs |  11.07µs |         39.2× |        2.6× |
+| Gloam (discover)         |  511.23µs |  23.67µs |         21.6× |        5.5× |
+| GLAD (dav1dde)           | 3634.71µs | 764.79µs |          4.8× |        179× |
 
 
 ![Load device functions (mingw)](mingw/charts/load_device.svg)
 
 ### Init + load all functions
 
-| Loader                   | Unpatched |  Patched | Patch speedup | vs. fastest |
-|--------------------------|----------:|---------:|--------------:|------------:|
-| **Gloam (enabled-list)** |   49.57µs |   5.43µs |          9.1× |        1.0× |
-| Volk                     |  623.83µs |  18.70µs |         33.4× |        3.4× |
-| GLAD (tycho)             | 3195.53µs |  73.17µs |         43.7× |       13.5× |
-| Gloam (discover)         | 3100.57µs |  73.83µs |         42.0× |       13.6× |
-| GLAD (dav1dde)           | 6731.70µs | 977.23µs |          6.9× |        180× |
+| Loader                   | Unpatched |   Patched | Patch speedup | vs. fastest |
+|--------------------------|----------:|----------:|--------------:|------------:|
+| **Gloam (enabled-list)** |   54.20µs |    5.83µs |          9.3× |        1.0× |
+| Volk                     |  695.20µs |   13.53µs |         51.4× |        2.3× |
+| Gloam (discover)         | 3306.63µs |   75.27µs |         43.9× |       12.9× |
+| GLAD (tycho)             | 3443.70µs |   78.00µs |         44.1× |       13.4× |
+| GLAD (dav1dde)           | 6920.37µs | 1063.97µs |          6.5× |        182× |
 
 
 ![Init + load all functions (mingw)](mingw/charts/init_load_all.svg)
@@ -72,24 +72,24 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader               |  Unpatched |    Patched | Patch speedup | vs. fastest |
 |----------------------|-----------:|-----------:|--------------:|------------:|
-| **Volk**             | 34081.53µs | 22701.10µs |          1.5× |        1.0× |
-| Gloam (enabled-list) | 33536.03µs | 22912.20µs |          1.5× |        1.0× |
-| GLAD (tycho)         | 35774.10µs | 23035.10µs |          1.6× |        1.0× |
-| Gloam (discover)     | 35472.43µs | 23486.10µs |          1.5× |        1.0× |
-| GLAD (dav1dde)       | 40765.50µs | 25296.33µs |          1.6× |        1.1× |
+| **Gloam (discover)** | 39178.07µs | 23913.73µs |          1.6× |        1.0× |
+| Volk                 | 36831.83µs | 24580.90µs |          1.5× |        1.0× |
+| Gloam (enabled-list) | 36001.67µs | 25128.03µs |          1.4× |        1.1× |
+| GLAD (tycho)         | 38912.97µs | 25175.33µs |          1.5× |        1.1× |
+| GLAD (dav1dde)       | 43235.43µs | 26652.23µs |          1.6× |        1.1× |
 
 
 ![Full VK context (libvulkan persistent) (mingw)](mingw/charts/full_ctx_persistent.svg)
 
 ### Full VK context (libvulkan transient)
 
-| Loader               |  Unpatched |    Patched | Patch speedup | vs. fastest |
-|----------------------|-----------:|-----------:|--------------:|------------:|
-| **Volk**             | 34741.27µs | 33704.73µs |          1.0× |        1.0× |
-| Gloam (enabled-list) | 33702.63µs | 33725.73µs |          1.0× |        1.0× |
-| GLAD (tycho)         | 36492.77µs | 33859.93µs |          1.1× |        1.0× |
-| Gloam (discover)     | 35863.90µs | 34128.70µs |          1.1× |        1.0× |
-| GLAD (dav1dde)       | 41029.63µs | 35542.80µs |          1.2× |        1.1× |
+| Loader                   |  Unpatched |    Patched | Patch speedup | vs. fastest |
+|--------------------------|-----------:|-----------:|--------------:|------------:|
+| **Gloam (enabled-list)** | 36125.40µs | 35731.30µs |          1.0× |        1.0× |
+| Gloam (discover)         | 39094.23µs | 36321.73µs |          1.1× |        1.0× |
+| Volk                     | 37866.63µs | 37177.77µs |          1.0× |        1.0× |
+| GLAD (tycho)             | 39154.10µs | 37178.27µs |          1.1× |        1.0× |
+| GLAD (dav1dde)           | 44330.80µs | 38640.37µs |          1.1× |        1.1× |
 
 
 ![Full VK context (libvulkan transient) (mingw)](mingw/charts/full_ctx_transient.svg)
@@ -100,11 +100,11 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 
 | Loader               | Loader .o |  Binary |   text |   data | bss |
 |----------------------|----------:|--------:|-------:|-------:|----:|
-| Gloam (discover)     |    46,745 |  69,120 | 22,742 | 43,508 |   0 |
-| Gloam (enabled-list) |    46,745 |  70,144 | 23,782 | 43,604 |   0 |
-| GLAD (tycho)         |    53,072 |  70,656 | 19,574 | 48,220 |   0 |
-| Volk                 |   223,294 | 110,592 | 75,830 | 31,532 |   0 |
-| GLAD (dav1dde)       |   192,597 | 120,320 | 76,006 | 41,372 |   0 |
+| GLAD (tycho)         |    53,072 |  67,072 | 17,366 | 47,404 |   0 |
+| Gloam (discover)     |    53,163 |  70,144 | 23,286 | 44,820 |   0 |
+| Gloam (enabled-list) |    53,163 |  71,168 | 24,326 | 44,916 |   0 |
+| Volk                 |   229,029 | 108,032 | 75,206 | 31,224 |   0 |
+| GLAD (dav1dde)       |   192,597 | 116,736 | 73,798 | 40,588 |   0 |
 
 
 <details>
@@ -112,19 +112,19 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 
 ### Host
 
-| Field        | Value                                       |
-|--------------|---------------------------------------------|
-| OS           | MINGW64_NT-10.0-26200 3.6.7-f2802c5f.x86_64 |
-| Architecture | x86_64                                      |
-| CPU          | AMD RYZEN AI MAX+ PRO 395 w/ Radeon 8060S   |
+| Field        | Value                                        |
+|--------------|----------------------------------------------|
+| OS           | MINGW64_NT-10.0-26200 3.6.10-8fbd9808.x86_64 |
+| Architecture | x86_64                                       |
+| CPU          | AMD RYZEN AI MAX+ PRO 395 w/ Radeon 8060S    |
 
 
 ### Toolchain
 
 | Field    | Value                                                      |
 |----------|------------------------------------------------------------|
-| CC       | clang (22.1.3)                                             |
-| CXX      | clang++ (22.1.3)                                           |
+| CC       | clang (22.1.8)                                             |
+| CXX      | clang++ (22.1.8)                                           |
 | OPTFLAGS | `-O2 -fno-unroll-loops -march=x86-64-v2 -mtune=znver3 -g0` |
 | CFLAGS   | `-std=c17`                                                 |
 | CXXFLAGS | `-std=c++20`                                               |
@@ -132,14 +132,14 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 
 ### Project versions
 
-| Project        | Version                 |
-|----------------|-------------------------|
-| GLAD (dav1dde) | `2.0.8-8-ga4ca574`      |
-| GLAD (tycho)   | `2.0.8-91-g8092eae`     |
-| gloam          | `0.4.8-1-gac4fa45`      |
-| Volk           | `1.4.341.0-26-gd41d1af` |
-| xxHash         | `0.7.4-1019-ge573d4d`   |
-| Vulkan-Headers | `1.4.349`               |
+| Project        | Version                |
+|----------------|------------------------|
+| GLAD (dav1dde) | `2.0.8-10-ge3c14f9`    |
+| GLAD (tycho)   | `2.0.8-92-g1002eae`    |
+| gloam          | `0.7.0`                |
+| Volk           | `1.4.357.0-7-g2e19a77` |
+| xxHash         | `0.7.4-1023-gc0b5ea9`  |
+| Vulkan-Headers | `1.4.360`              |
 
 
 ### vulkaninfo
@@ -148,15 +148,15 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 Devices:
 ========
 GPU0:
-	apiVersion         = 1.4.344
-	driverVersion      = 2.0.388
+	apiVersion         = 1.4.349
+	driverVersion      = 2.0.395
 	vendorID           = 0x1002
 	deviceID           = 0x1586
 	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
 	deviceName         = AMD Radeon(TM) 8060S Graphics
 	driverID           = DRIVER_ID_AMD_PROPRIETARY
 	driverName         = AMD proprietary driver
-	driverInfo         = 26.5.1 (LLPC)
+	driverInfo         = 26.7.1 (LLPC)
 	conformanceVersion = 1.4.3.3
 	deviceUUID         = 00000000-c300-0000-0000-000000000000
 	driverUUID         = 414d442d-5749-4e2d-4452-560000000000

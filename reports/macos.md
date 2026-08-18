@@ -20,11 +20,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Task                                   | Winner                   | Patched avg | Unpatched avg | Patch speedup |
 |----------------------------------------|--------------------------|------------:|--------------:|--------------:|
-| Load instance functions                | **Gloam (enabled-list)** |      1.16µs |        5.38µs |          4.6× |
-| Load device functions                  | **Gloam (enabled-list)** |      3.25µs |       30.04µs |          9.2× |
-| Init + load all functions              | **Gloam (enabled-list)** |      5.07µs |       35.23µs |          6.9× |
-| Full VK context (libvulkan persistent) | **Volk**                 |   1313.57µs |     1992.53µs |          1.5× |
-| Full VK context (libvulkan transient)  | **Gloam (enabled-list)** |   2132.43µs |     1912.87µs |          0.9× |
+| Load instance functions                | **Gloam (enabled-list)** |      0.83µs |        1.13µs |          1.4× |
+| Load device functions                  | **Gloam (enabled-list)** |      3.42µs |        5.43µs |          1.6× |
+| Init + load all functions              | **Gloam (enabled-list)** |      5.00µs |        7.20µs |          1.4× |
+| Full VK context (libvulkan persistent) | **Volk**                 |   1379.73µs |     1657.27µs |          1.2× |
+| Full VK context (libvulkan transient)  | **Gloam (enabled-list)** |   2247.83µs |     1944.57µs |          0.9× |
 
 
 ## Task detail
@@ -33,11 +33,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader                   | Unpatched |  Patched | Patch speedup | vs. fastest |
 |--------------------------|----------:|---------:|--------------:|------------:|
-| **Gloam (enabled-list)** |    5.38µs |   1.16µs |          4.6× |        1.0× |
-| GLAD (tycho)             |   22.76µs |   2.74µs |          8.3× |        2.4× |
-| Volk                     |   58.89µs |   4.96µs |         11.9× |        4.3× |
-| Gloam (discover)         |  203.75µs |  20.06µs |         10.2× |       17.3× |
-| GLAD (dav1dde)           |  468.01µs | 219.82µs |          2.1× |        190× |
+| **Gloam (enabled-list)** |    1.13µs |   0.83µs |          1.4× |        1.0× |
+| GLAD (tycho)             |    4.90µs |   2.57µs |          1.9× |        3.1× |
+| Volk                     |    9.66µs |   4.64µs |          2.1× |        5.6× |
+| Gloam (discover)         |  181.21µs |  19.00µs |          9.5× |       22.9× |
+| GLAD (dav1dde)           |  400.87µs | 222.95µs |          1.8× |        269× |
 
 
 ![Load instance functions (macos)](macos/charts/load_instance.svg)
@@ -46,11 +46,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader                   | Unpatched |  Patched | Patch speedup | vs. fastest |
 |--------------------------|----------:|---------:|--------------:|------------:|
-| **Gloam (enabled-list)** |   30.04µs |   3.25µs |          9.2× |        1.0× |
-| GLAD (tycho)             |  141.58µs |   8.80µs |         16.1× |        2.7× |
-| Gloam (discover)         |  148.56µs |  13.63µs |         10.9× |        4.2× |
-| Volk                     |  338.01µs |  15.54µs |         21.8× |        4.8× |
-| GLAD (dav1dde)           | 1091.54µs | 595.26µs |          1.8× |        183× |
+| **Gloam (enabled-list)** |    5.43µs |   3.42µs |          1.6× |        1.0× |
+| GLAD (tycho)             |   12.69µs |   7.08µs |          1.8× |        2.1× |
+| Volk                     |   16.99µs |  10.62µs |          1.6× |        3.1× |
+| Gloam (discover)         |   17.41µs |  11.72µs |          1.5× |        3.4× |
+| GLAD (dav1dde)           |  762.92µs | 597.76µs |          1.3× |        175× |
 
 
 ![Load device functions (macos)](macos/charts/load_device.svg)
@@ -59,11 +59,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader                   | Unpatched |   Patched | Patch speedup | vs. fastest |
 |--------------------------|----------:|----------:|--------------:|------------:|
-| **Gloam (enabled-list)** |   35.23µs |    5.07µs |          6.9× |        1.0× |
-| Volk                     |  379.83µs |   18.13µs |         21.0× |        3.6× |
-| GLAD (tycho)             |  575.17µs |   89.30µs |          6.4× |       17.6× |
-| Gloam (discover)         |  576.33µs |   90.00µs |          6.4× |       17.8× |
-| GLAD (dav1dde)           | 1975.60µs | 1090.70µs |          1.8× |        215× |
+| **Gloam (enabled-list)** |    7.20µs |    5.00µs |          1.4× |        1.0× |
+| Volk                     |   28.40µs |   13.97µs |          2.0× |        2.8× |
+| Gloam (discover)         |  422.80µs |   86.17µs |          4.9× |       17.2× |
+| GLAD (tycho)             |  427.90µs |   89.13µs |          4.8× |       17.8× |
+| GLAD (dav1dde)           | 1555.03µs | 1083.13µs |          1.4× |        217× |
 
 
 ![Init + load all functions (macos)](macos/charts/init_load_all.svg)
@@ -72,11 +72,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader               | Unpatched |   Patched | Patch speedup | vs. fastest |
 |----------------------|----------:|----------:|--------------:|------------:|
-| **Volk**             | 1992.53µs | 1313.57µs |          1.5× |        1.0× |
-| Gloam (enabled-list) | 1630.13µs | 1371.50µs |          1.2× |        1.0× |
-| Gloam (discover)     | 2010.17µs | 1385.27µs |          1.5× |        1.1× |
-| GLAD (tycho)         | 2006.93µs | 1418.60µs |          1.4× |        1.1× |
-| GLAD (dav1dde)       | 3582.93µs | 2474.70µs |          1.4× |        1.9× |
+| **Volk**             | 1657.27µs | 1379.73µs |          1.2× |        1.0× |
+| Gloam (enabled-list) | 1651.93µs | 1403.43µs |          1.2× |        1.0× |
+| Gloam (discover)     | 1893.13µs | 1436.73µs |          1.3× |        1.0× |
+| GLAD (tycho)         | 1883.83µs | 1487.80µs |          1.3× |        1.1× |
+| GLAD (dav1dde)       | 3236.33µs | 2522.37µs |          1.3× |        1.8× |
 
 
 ![Full VK context (libvulkan persistent) (macos)](macos/charts/full_ctx_persistent.svg)
@@ -85,11 +85,11 @@ Lower is better. **Winner** = best patched average on this host for each task.
 
 | Loader                   | Unpatched |   Patched | Patch speedup | vs. fastest |
 |--------------------------|----------:|----------:|--------------:|------------:|
-| **Gloam (enabled-list)** | 1912.87µs | 2132.43µs |          0.9× |        1.0× |
-| Volk                     | 2318.80µs | 2161.77µs |          1.1× |        1.0× |
-| GLAD (tycho)             | 2293.83µs | 2170.93µs |          1.1× |        1.0× |
-| Gloam (discover)         | 2296.83µs | 2176.47µs |          1.1× |        1.0× |
-| GLAD (dav1dde)           | 3923.67µs | 3248.93µs |          1.2× |        1.5× |
+| **Gloam (enabled-list)** | 1944.57µs | 2247.83µs |          0.9× |        1.0× |
+| Volk                     | 1968.47µs | 2257.23µs |          0.9× |        1.0× |
+| GLAD (tycho)             | 2159.80µs | 2282.53µs |          0.9× |        1.0× |
+| Gloam (discover)         | 2176.73µs | 2283.10µs |          1.0× |        1.0× |
+| GLAD (dav1dde)           | 3556.23µs | 3352.43µs |          1.1× |        1.5× |
 
 
 ![Full VK context (libvulkan transient) (macos)](macos/charts/full_ctx_transient.svg)
@@ -101,9 +101,9 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 | Loader               | Loader .o |  Binary |    text |   data | bss |
 |----------------------|----------:|--------:|--------:|-------:|----:|
 | GLAD (tycho)         |    74,024 |  70,608 |  49,152 | 16,384 |   0 |
-| Gloam (discover)     |    47,912 |  87,360 |  65,536 | 16,384 |   0 |
-| Gloam (enabled-list) |    47,912 |  87,360 |  65,536 | 16,384 |   0 |
-| Volk                 |   259,216 | 136,312 | 114,688 | 16,384 |   0 |
+| Gloam (discover)     |    54,320 |  87,568 |  65,536 | 16,384 |   0 |
+| Gloam (enabled-list) |    54,320 |  87,568 |  65,536 | 16,384 |   0 |
+| Volk                 |   265,936 | 136,312 | 114,688 | 16,384 |   0 |
 | GLAD (dav1dde)       |   275,592 | 161,856 | 114,688 | 16,384 |   0 |
 
 
@@ -114,7 +114,7 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 
 | Field        | Value         |
 |--------------|---------------|
-| OS           | Darwin 25.4.0 |
+| OS           | Darwin 25.6.0 |
 | Architecture | arm64         |
 | CPU          | Apple M5      |
 
@@ -132,14 +132,14 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 
 ### Project versions
 
-| Project        | Version                 |
-|----------------|-------------------------|
-| GLAD (dav1dde) | `2.0.8-8-ga4ca574`      |
-| GLAD (tycho)   | `2.0.8-91-g8092eae`     |
-| gloam          | `0.4.8-1-gac4fa45`      |
-| Volk           | `1.4.341.0-26-gd41d1af` |
-| xxHash         | `0.7.4-1019-ge573d4d`   |
-| Vulkan-Headers | `1.4.349`               |
+| Project        | Version                |
+|----------------|------------------------|
+| GLAD (dav1dde) | `2.0.8-10-ge3c14f9`    |
+| GLAD (tycho)   | `2.0.8-92-g1002eae`    |
+| gloam          | `0.7.0`                |
+| Volk           | `1.4.357.0-7-g2e19a77` |
+| xxHash         | `0.7.4-1023-gc0b5ea9`  |
+| Vulkan-Headers | `1.4.360`              |
 
 
 ### vulkaninfo
@@ -148,18 +148,18 @@ All sizes in bytes. Sorted by stripped binary size. Section values come from `si
 Devices:
 ========
 GPU0:
-	apiVersion         = 1.4.334
-	driverVersion      = 0.2.2209
+	apiVersion         = 1.4.357
+	driverVersion      = 0.2.2210
 	vendorID           = 0x106b
-	deviceID           = 0x1a04020a
+	deviceID           = 0x1a06020a
 	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
 	deviceName         = Apple M5
 	driverID           = DRIVER_ID_MOLTENVK
 	driverName         = MoltenVK
-	driverInfo         = 1.4.1
+	driverInfo         = 1.4.2
 	conformanceVersion = 1.4.4.0
-	deviceUUID         = 0000106b-1a04-020a-0000-000000000000
-	driverUUID         = 4d564b00-0000-28a1-1a04-020a00000000
+	deviceUUID         = 0000106b-1a06-020a-0000-000000000000
+	driverUUID         = 4d564b00-0000-28a2-1a06-020a00000000
 ```
 
 </details>
